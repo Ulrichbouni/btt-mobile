@@ -1,0 +1,21 @@
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':expo-modules-core:compileReleaseKotlin'.
+> Could not resolve all files for configuration ':expo-modules-core:releaseCompileClasspath'.
+   > Failed to transform expo-modules-core$android-annotation-1.1.1.jar (project :expo-modules-core$android-annotation) to match attributes {artifactType=android-classes-jar, org.gradle.category=library, org.gradle.dependency.bundling=external, org.gradle.jvm.environment=standard-jvm, org.gradle.jvm.version=21, org.gradle.libraryelements=jar, org.gradle.usage=java-api, org.jetbrains.kotlin.platform.type=jvm}.
+      > Execution failed for JetifyTransform: D:\agence-IA\gestion\mobile\node_modules\expo-modules-core\android-annotation\build\libs\expo-modules-core$android-annotation-1.1.1.jar.
+         > Failed to transform 'D:\agence-IA\gestion\mobile\node_modules\expo-modules-core\android-annotation\build\libs\expo-modules-core$android-annotation-1.1.1.jar' using Jetifier. Reason: IllegalArgumentException, message: Unsupported class file major version 65. (Run with --stacktrace for more details.)
+           Suggestions:
+            - Check out existing issues at https://issuetracker.google.com/issues?q=componentid:460323&s=modified_time:desc, it's possible that this issue has already been filed there.
+            - If this issue has not been filed, please report it at https://issuetracker.google.com/issues/new?component=460323 (run with --stacktrace and provide a stack trace if possible).
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2m 39s

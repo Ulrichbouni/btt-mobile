@@ -1,0 +1,87 @@
+> Task :gradle-plugin:checkKotlinGradlePluginConfigurationErrors
+> Task :gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:jar UP-TO-DATE
+
+> Configure project :expo
+
+Using expo modules
+  - [32mexpo-constants[0m (15.4.6)
+  - [32mexpo-file-system[0m (16.0.9)
+  - [32mexpo-font[0m (11.10.3)
+  - [32mexpo-keep-awake[0m (12.8.2)
+  - [32mexpo-modules-core[0m (1.11.14)
+  - [32mexpo-modules-core$android-annotation-processor[0m (1.11.14)
+  - [32mexpo-modules-core$android-annotation[0m (1.11.14)
+
+
+> Task :expo:generateExpoModulesPackageList
+> Task :expo:preBuild
+> Task :expo:preReleaseBuild
+> Task :expo:mergeReleaseJniLibFolders
+> Task :expo:mergeReleaseNativeLibs NO-SOURCE
+> Task :expo:stripReleaseDebugSymbols NO-SOURCE
+> Task :expo:generateReleaseResValues
+> Task :expo:extractDeepLinksForAarRelease
+> Task :expo:copyReleaseJniLibsProjectAndLocalJars
+> Task :expo-modules-core$android-annotation:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-modules-core$android-annotation-processor:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-modules-core$android-annotation-processor:processResources
+> Task :expo-modules-core$android-annotation:processResources NO-SOURCE
+> Task :expo:checkKotlinGradlePluginConfigurationErrors
+> Task :expo:generateReleaseBuildConfig
+> Task :expo:generateReleaseResources
+> Task :expo:packageReleaseResources
+> Task :expo-modules-core$android-annotation:compileKotlin
+> Task :expo-modules-core$android-annotation:compileJava NO-SOURCE
+> Task :expo:parseReleaseLocalResources
+> Task :expo-modules-core$android-annotation:classes UP-TO-DATE
+> Task :expo-modules-core$android-annotation:jar
+> Task :expo-constants:checkKotlinGradlePluginConfigurationErrors
+> Task :expo:processReleaseManifest
+> Task :expo-constants:createExpoConfig
+> Task :expo-constants:preBuild
+> Task :expo-constants:preReleaseBuild
+> Task :expo-constants:generateReleaseBuildConfig
+> Task :expo-constants:generateReleaseResValues
+> Task :expo-constants:generateReleaseResources
+> Task :expo:generateReleaseRFile
+> Task :expo-constants:packageReleaseResources
+> Task :expo-constants:parseReleaseLocalResources
+> Task :expo-modules-core:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-modules-core:preBuild UP-TO-DATE
+> Task :expo-modules-core:preReleaseBuild UP-TO-DATE
+> Task :expo-constants:processReleaseManifest
+> Task :expo-modules-core:generateReleaseBuildConfig
+> Task :expo-modules-core:generateReleaseResValues
+> Task :expo-modules-core:generateReleaseResources
+> Task :expo-modules-core:packageReleaseResources
+> Task :expo-constants:generateReleaseRFile
+> Task :expo-modules-core:parseReleaseLocalResources
+> Task :expo-modules-core:javaPreCompileRelease
+> Task :expo-file-system:checkKotlinGradlePluginConfigurationErrors
+> Task :expo-constants:javaPreCompileRelease
+> Task :expo-file-system:preBuild UP-TO-DATE
+> Task :expo-file-system:preReleaseBuild UP-TO-DATE
+
+> Task :expo-modules-core:processReleaseManifest
+D:\agence-IA\gestion\mobile\node_modules\expo-modules-core\android\src\main\AndroidManifest.xml:8:9-11:45 Warning:
+	meta-data#com.facebook.soloader.enabled@android:value was tagged at AndroidManifest.xml:8 to replace other declarations but no other declaration present
+
+> Task :expo-file-system:generateReleaseBuildConfig
+> Task :expo-file-system:generateReleaseResValues
+> Task :expo-file-system:generateReleaseResources
+> Task :expo-modules-core:generateReleaseRFile
+> Task :expo-file-system:packageReleaseResources
+> Task :expo-modules-core$android-annotation-processor:compileKotlin
+> Task :expo-modules-core:compileReleaseKotlin FAILED
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.9/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+44 actionable tasks: 40 executed, 4 up-to-date

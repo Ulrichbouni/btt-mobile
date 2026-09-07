@@ -1,0 +1,13 @@
+Git status is dirty but the command will continue because the terminal is not interactive.
+› Using current versions instead of recommended react-native@0.73.6.
+Error: [android.dangerous]: withAndroidDangerousBaseMod: Unrecognised filter type - 180
+Error: [android.dangerous]: withAndroidDangerousBaseMod: Unrecognised filter type - 180
+    at n._reverseFilterLine (D:\agence-IA\gestion\mobile\node_modules\jimp-compact\dist\jimp.js:1:238258)
+    at e.process (D:\agence-IA\gestion\mobile\node_modules\jimp-compact\dist\jimp.js:1:40580)
+    at e.process (D:\agence-IA\gestion\mobile\node_modules\jimp-compact\dist\jimp.js:1:511680)
+    at t.exports (D:\agence-IA\gestion\mobile\node_modules\jimp-compact\dist\jimp.js:1:420110)
+    at e.read [as image/png] (D:\agence-IA\gestion\mobile\node_modules\jimp-compact\dist\jimp.js:1:1865)
+    at Jimp.parseBitmap (D:\agence-IA\gestion\mobile\node_modules\jimp-compact\dist\jimp.js:1:125704)
+    at Jimp.parseBitmap (D:\agence-IA\gestion\mobile\node_modules\jimp-compact\dist\jimp.js:1:8514)
+    at D:\agence-IA\gestion\mobile\node_modules\jimp-compact\dist\jimp.js:1:7613
+    at FSReqCallback.readFileAfterClose [as oncomplete] (node:internal/fs/read/context:68:3)
