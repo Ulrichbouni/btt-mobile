@@ -30,7 +30,10 @@
       "favicon": "./assets/icon.png"
     },
     "extra": {
-      "apiUrl": "https://btt-backend-sgas.onrender.com"
+      "apiUrl": "https://btt-backend-sgas.onrender.com/api",
+      "eas": {
+        "projectId": "0762c5a4-ba0f-4b9c-af5c-4520f68aadef"
+      }
     }
   }
 }

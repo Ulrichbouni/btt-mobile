@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-const baseURL = Constants.expoConfig?.extra?.apiUrl || 'https://btt-backend-sgas.onrender.com';
+const baseURL = Constants.expoConfig?.extra?.apiUrl || 'https://btt-backend-sgas.onrender.com/api';
 
 const api = axios.create({ baseURL });
 
