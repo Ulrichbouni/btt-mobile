@@ -1,129 +1,134 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-} from "react-native";
-import api from "../services/api";
-import { saveSession } from "../services/auth";
+import React, { useCallback, useEffect, useState } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { StatusBar } from "expo-status-bar";
 
-export default function LoginScreen({ navigation, onLogin }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
-  const [loading, setLoading] = useState(false);
+import { getSession, clearSession } from "./src/services/auth";
+import { setOnUnauthorized } from "./src/services/api";
 
-  const submit = async () => {
-    if (!email || !password) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs");
-      return;
-    }
-    setLoading(true);
-    try {
-      const { data } = await api.post("/auth/login", {
-        email,
-        mot_de_passe: password,
-        otp_token: otp || undefined,
-      });
-      await saveSession(data.token, data.user);
-      onLogin(data.user);
-    } catch (err) {
-      const msg = err.response?.data?.error || "Connexion impossible";
-      Alert.alert(
-        "Erreur",
-        msg === "OTP_REQUIRED" ? "Un code OTP est requis" : msg,
-      );
-    }
-    setLoading(false);
-  };
+import LoginScreen from "./src/screens/LoginScreen";
+import RegisterScreen from "./src/screens/RegisterScreen";
+import HomeScreen from "./src/screens/HomeScreen";
+import PaiementScreen from "./src/screens/PaiementScreen";
+import MissionsScreen from "./src/screens/MissionsScreen";
+import CatalogueScreen from "./src/screens/CatalogueScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
+import SimpleScreen from "./src/screens/SimpleScreen";
 
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+const BROWSER_SCREENS = {
+  Calculator: { title: "🧮 Calculateur" },
+  Devis: { title: "📄 Demande de devis" },
+  Notifications: { title: "🔔 Notifications" },
+};
+
+function HomeTabs({ user, onLogout }) {
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.logo}>BTT-LUX</Text>
-      <Text style={styles.subtitle}>Panneaux fibrociment Luxerboard</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        onChangeText={setEmail}
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: "#b45309",
+        tabBarStyle: { height: 62, paddingBottom: 8 },
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ tabBarLabel: "Accueil", tabBarIcon: () => null }}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Mot de passe"
-        value={password}
-        secureTextEntry
-        onChangeText={setPassword}
+      <Tab.Screen
+        name="Catalogue"
+        component={CatalogueScreen}
+        options={{ tabBarLabel: "Catalogue" }}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Code OTP (si activé)"
-        value={otp}
-        keyboardType="number-pad"
-        onChangeText={setOtp}
+      <Tab.Screen
+        name="Paiement"
+        component={PaiementScreen}
+        options={{ tabBarLabel: "Paiement" }}
       />
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={submit}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Se connecter</Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-        <Text style={styles.link}>Pas de compte ? S'inscrire</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      <Tab.Screen
+        name="Missions"
+        component={MissionsScreen}
+        options={{ tabBarLabel: "Missions" }}
+      />
+      <Tab.Screen name="Profil">
+        {() => <ProfileScreen user={user} onLogout={onLogout} />}
+      </Tab.Screen>
+    </Tab.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#faf7f2",
-  },
-  logo: {
-    fontSize: 40,
-    fontWeight: "800",
-    color: "#92400e",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#78350f",
-    textAlign: "center",
-    marginBottom: 32,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  button: {
-    backgroundColor: "#b45309",
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  link: { color: "#92400e", textAlign: "center", marginTop: 16 },
-});
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [ready, setReady] = useState(false);
+
+  const handleLogout = useCallback(async () => {
+    await clearSession();
+    setUser(null);
+  }, []);
+
+  useEffect(() => {
+    setOnUnauthorized(handleLogout);
+
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const { user: sessionUser } = await getSession();
+        if (isMounted) {
+          setUser(sessionUser);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setReady(true);
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [handleLogout]);
+
+  if (!ready) return null;
+
+  return (
+    <NavigationContainer>
+      <StatusBar style="dark" />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {user ? (
+          <>
+            <Stack.Screen name="Tabs">
+              {() => <HomeTabs user={user} onLogout={handleLogout} />}
+            </Stack.Screen>
+            {Object.entries(BROWSER_SCREENS).map(([name, params]) => (
+              <Stack.Screen key={name} name={name}>
+                {({ route }) => (
+                  <SimpleScreen title={route?.params?.title || params.title} />
+                )}
+              </Stack.Screen>
+            ))}
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Login">
+              {({ navigation }) => (
+                <LoginScreen navigation={navigation} onLogin={setUser} />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Register">
+              {({ navigation }) => <RegisterScreen navigation={navigation} />}
+            </Stack.Screen>
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}

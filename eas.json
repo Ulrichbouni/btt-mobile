@@ -1,25 +1,39 @@
 {
-  "cli": {
-    "version": ">= 5.0.0"
-  },
-  "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal"
+  "expo": {
+    "name": "BTT-LUX",
+    "slug": "btt-lux",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
     },
-    "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bttlux.app"
     },
-    "production": {
-      "android": {
-        "buildType": "app-bundle"
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.bttlux.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "extra": {
+      "apiUrl": "https://btt-backend-sgas.onrender.com/api",
+      "eas": {
+        "projectId": "0762c5a4-ba0f-4b9c-af5c-4520f68aadef"
       }
     }
-  },
-  "submit": {
-    "production": {}
   }
 }

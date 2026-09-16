@@ -1,39 +1,127 @@
+# BTT-LUX Mobile (React Native / Expo)
+
+Application mobile officielle de la plateforme BTT-LUX pour la gestion des produits, devis, missions, paiements et profil utilisateur.
+
+## Stack
+
+- React Native / Expo
+- React Navigation
+- Axios
+- AsyncStorage
+- Expo Constants
+
+## Fonctionnalités
+
+- Authentification et inscription
+- Gestion de session persistante
+- Catalogue produits
+- Paiement mobile money
+- Missions technicien
+- Accès au profil utilisateur
+- Navigation par onglets et écrans d’authentification
+
+## Prérequis
+
+- Node.js >= 18
+- npm ou yarn
+- Expo Go sur Android/iOS
+
+## Installation
+
+```bash
+npm install
+```
+
+## Configuration de l'API
+
+La base URL de l’API est lue depuis `app.json` > `expo.extra.apiUrl`.
+
+```json
 {
   "expo": {
-    "name": "BTT-LUX",
-    "slug": "btt-lux",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.bttlux.app"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.bttlux.app",
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
-      ]
-    },
-    "web": {
-      "favicon": "./assets/icon.png"
-    },
     "extra": {
-      "apiUrl": "https://btt-backend-sgas.onrender.com/api",
-      "eas": {
-        "projectId": "0762c5a4-ba0f-4b9c-af5c-4520f68aadef"
-      }
+      "apiUrl": "http://192.168.1.10:5000/api"
     }
   }
 }
+```
+
+Pour le backend déployé :
+
+```json
+{
+  "expo": {
+    "extra": {
+      "apiUrl": "https://votre-backend-render.onrender.com/api"
+    }
+  }
+}
+```
+
+## Démarrage
+
+```bash
+npx expo start
+```
+
+Puis scanner le QR code avec Expo Go.
+
+## Build de production
+
+### Android
+
+```bash
+npx expo run:android
+# ou
+npx eas build -p android --profile production
+```
+
+### iOS
+
+```bash
+npx eas build -p ios --profile production
+```
+
+## Structure du projet
+
+```text
+.
+├── App.js
+├── app.json
+├── eas.json
+├── package.json
+├── src/
+│   ├── screens/
+│   │   ├── CatalogueScreen.js
+│   │   ├── HomeScreen.js
+│   │   ├── LoginScreen.js
+│   │   ├── MissionsScreen.js
+│   │   ├── PaiementScreen.js
+│   │   ├── ProfileScreen.js
+│   │   ├── RegisterScreen.js
+│   │   └── SimpleScreen.js
+│   └── services/
+│       ├── api.js
+│       └── auth.js
+└── README.md
+```
+
+## Bonnes pratiques implémentées
+
+- Gestion centralisée de la session
+- Intercepteur Axios pour l’authentification
+- Déconnexion automatique en cas d’erreur 401
+- Validation des formulaires
+- Préparation à l’environnement de production
+- UX plus claire pour les états de chargement et d’erreur
+
+## À venir
+
+- amélioration visuelle complète de chaque écran
+- intégration d’un système de notifications push
+- mise en place de tests automatiques mobile
+- centralisation de la configuration d’environnement
+
+## Licence
+
+MIT

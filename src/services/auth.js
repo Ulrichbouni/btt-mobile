@@ -1,27 +1,56 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const TOKEN_KEY = 'token';
-const USER_KEY = 'user';
+const TOKEN_KEY = "token";
+const USER_KEY = "user";
+const SESSION_VERSION_KEY = "session_version";
 
 export const saveSession = async (token, user) => {
+  if (!token) {
+    throw new Error("A token is required to save the session.");
+  }
+
+  const normalizedUser = user && typeof user === "object" ? user : { email: user };
+
   await AsyncStorage.multiSet([
-    [TOKEN_KEY, token],
-    [USER_KEY, JSON.stringify(user)],
+    [TOKEN_KEY, String(token)],
+    [USER_KEY, JSON.stringify(normalizedUser)],
+    [SESSION_VERSION_KEY, "1"],
   ]);
 };
 
 export const getSession = async () => {
   try {
-    const [token, user] = await AsyncStorage.multiGet([TOKEN_KEY, USER_KEY]);
+    const [tokenEntry, userEntry, versionEntry] = await AsyncStorage.multiGet([
+      TOKEN_KEY,
+      USER_KEY,
+      SESSION_VERSION_KEY,
+    ]);
+
+    const token = tokenEntry?.[1] ?? null;
+    const userValue = userEntry?.[1] ?? null;
+    const version = versionEntry?.[1] ?? null;
+
+    if (!token || !userValue) {
+      return { token: null, user: null, isAuthenticated: false };
+    }
+
+    const user = JSON.parse(userValue);
+
     return {
-      token: token?.[1],
-      user: user?.[1] ? JSON.parse(user[1]) : null,
+      token,
+      user,
+      isAuthenticated: Boolean(token && user && version),
     };
-  } catch (e) {
-    return { token: null, user: null };
+  } catch (error) {
+    return { token: null, user: null, isAuthenticated: false };
   }
 };
 
+export const isSessionValid = async () => {
+  const { token, user } = await getSession();
+  return Boolean(token && user);
+};
+
 export const clearSession = async () => {
-  await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+  await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY, SESSION_VERSION_KEY]);
 };
