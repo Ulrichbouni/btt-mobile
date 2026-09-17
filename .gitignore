@@ -27,3 +27,6 @@ _*.log
 _*.err
 _*.txt
 apk-build.log
+assets/backup/
+
+assets/backup/
