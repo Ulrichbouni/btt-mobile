@@ -71,7 +71,7 @@ export default function AdminProductsScreen() {
       return;
     }
 
-    // ⚠️ epaisseur reste un STRING (schéma backend : z.string())
+    // epaisseur reste un STRING (schéma backend : z.string())
     const payload = {
       nom: form.nom.trim(),
       nom_en: form.nom_en?.trim() || undefined,
@@ -87,7 +87,6 @@ export default function AdminProductsScreen() {
       statut_stock: form.statut_stock || "En stock",
     };
 
-    // Sécurité : empêcher NaN d'aller au backend
     if (Number.isNaN(payload.prix_ttc)) {
       Alert.alert("Erreur", "Prix TTC invalide.");
       return;
