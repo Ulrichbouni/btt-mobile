@@ -30,3 +30,6 @@ apk-build.log
 assets/backup/
 
 assets/backup/
+
+/android/
+/ios/
