@@ -19,6 +19,9 @@ import AdminDashboardScreen from "./src/screens/AdminDashboardScreen";
 import AdminUsersScreen from "./src/screens/AdminUsersScreen";
 import AdminProductsScreen from "./src/screens/AdminProductsScreen";
 import AdminMissionsScreen from "./src/screens/AdminMissionsScreen";
+import AdminDevisScreen from "./src/screens/AdminDevisScreen";
+import AdminChantiersScreen from "./src/screens/AdminChantiersScreen";
+import ChantierDetailScreen from "./src/screens/ChantierDetailScreen";
 import OTPSetupScreen from "./src/screens/OTPSetupScreen";
 
 const Stack = createNativeStackNavigator();
@@ -119,7 +122,18 @@ export default function App() {
             {user.role === "admin" && (
               <>
                 <Stack.Screen name="Admin" component={AdminDashboardScreen} />
-                <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+                <Stack.Screen name="AdminUsers">
+                  {() => <AdminUsersScreen currentUser={user} />}
+                </Stack.Screen>
+                <Stack.Screen name="AdminDevis" component={AdminDevisScreen} />
+                <Stack.Screen
+                  name="AdminChantiers"
+                  component={AdminChantiersScreen}
+                />
+                <Stack.Screen
+                  name="ChantierDetail"
+                  component={ChantierDetailScreen}
+                />
                 <Stack.Screen
                   name="AdminProducts"
                   component={AdminProductsScreen}
