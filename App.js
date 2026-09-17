@@ -39,10 +39,24 @@ function HomeTabs({ user, onLogout }) {
         tabBarStyle: { height: 62, paddingBottom: 8 },
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: "Accueil" }} />
-      <Tab.Screen name="Catalogue" component={CatalogueScreen} options={{ tabBarLabel: "Catalogue" }} />
-      <Tab.Screen name="Paiement" component={PaiementScreen} options={{ tabBarLabel: "Paiement" }} />
-      <Tab.Screen name="Missions" component={MissionsScreen} options={{ tabBarLabel: "Missions" }} />
+      <Tab.Screen name="Home" options={{ tabBarLabel: "Accueil" }}>
+        {({ navigation }) => <HomeScreen navigation={navigation} user={user} />}
+      </Tab.Screen>
+      <Tab.Screen
+        name="Catalogue"
+        component={CatalogueScreen}
+        options={{ tabBarLabel: "Catalogue" }}
+      />
+      <Tab.Screen
+        name="Paiement"
+        component={PaiementScreen}
+        options={{ tabBarLabel: "Paiement" }}
+      />
+      <Tab.Screen
+        name="Missions"
+        component={MissionsScreen}
+        options={{ tabBarLabel: "Missions" }}
+      />
       <Tab.Screen name="Profil">
         {() => <ProfileScreen user={user} onLogout={onLogout} />}
       </Tab.Screen>
@@ -96,7 +110,9 @@ export default function App() {
 
             {Object.entries(BROWSER_SCREENS).map(([name, params]) => (
               <Stack.Screen key={name} name={name}>
-                {({ route }) => <SimpleScreen title={route?.params?.title || params.title} />}
+                {({ route }) => (
+                  <SimpleScreen title={route?.params?.title || params.title} />
+                )}
               </Stack.Screen>
             ))}
 
@@ -104,8 +120,14 @@ export default function App() {
               <>
                 <Stack.Screen name="Admin" component={AdminDashboardScreen} />
                 <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
-                <Stack.Screen name="AdminProducts" component={AdminProductsScreen} />
-                <Stack.Screen name="AdminMissions" component={AdminMissionsScreen} />
+                <Stack.Screen
+                  name="AdminProducts"
+                  component={AdminProductsScreen}
+                />
+                <Stack.Screen
+                  name="AdminMissions"
+                  component={AdminMissionsScreen}
+                />
               </>
             )}
 
@@ -114,7 +136,9 @@ export default function App() {
         ) : (
           <>
             <Stack.Screen name="Login">
-              {({ navigation }) => <LoginScreen navigation={navigation} onLogin={setUser} />}
+              {({ navigation }) => (
+                <LoginScreen navigation={navigation} onLogin={setUser} />
+              )}
             </Stack.Screen>
             <Stack.Screen name="Register">
               {({ navigation }) => <RegisterScreen navigation={navigation} />}
