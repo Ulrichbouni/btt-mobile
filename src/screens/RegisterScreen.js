@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,149 +8,201 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
-
 import api from "../services/api";
-import { saveSession } from "../services/auth";
 
-export default function LoginScreen({ navigation, onLogin }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
+export default function RegisterScreen({ navigation, onRegistered }) {
+  const [step, setStep] = useState("otp"); // 'otp' | 'verify' | 'register'
+  const [form, setForm] = useState({
+    telephone: "",
+    code: "",
+    nom: "",
+    email: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
 
-  const formIsValid = useMemo(() => {
-    return (
-      email.trim().length > 0 &&
-      password.trim().length >= 6 &&
-      (!otp || otp.length >= 6)
-    );
-  }, [email, otp, password]);
+  const update = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
 
-  const validateForm = () => {
-    const nextErrors = {};
-
-    if (!email.trim()) {
-      nextErrors.email = "L’email est requis.";
-    }
-
-    if (!password.trim()) {
-      nextErrors.password = "Le mot de passe est requis.";
-    } else if (password.trim().length < 6) {
-      nextErrors.password = "Le mot de passe doit contenir au moins 6 caractères.";
-    }
-
-    if (otp && otp.trim().length < 6) {
-      nextErrors.otp = "Le code OTP est invalide.";
-    }
-
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
-
-  const submit = async () => {
-    if (!validateForm()) {
-      const firstError = Object.values(errors)[0] || "Veuillez vérifier les informations saisies.";
-      Alert.alert("Erreur", firstError);
+  const requestOTP = async () => {
+    if (!form.telephone) {
+      Alert.alert("Erreur", "Veuillez entrer votre numero");
       return;
     }
-
     setLoading(true);
-
     try {
-      const { data } = await api.post("/auth/login", {
-        email: email.trim(),
-        mot_de_passe: password,
-        otp_token: otp || undefined,
-      });
-
-      await saveSession(data.token, data.user);
-      onLogin(data.user);
-    } catch (error) {
-      const message = error.response?.data?.error || "Connexion impossible.";
-      const translated =
-        message === "OTP_REQUIRED"
-          ? "Un code OTP est requis pour poursuivre."
-          : message;
-
-      Alert.alert("Erreur", translated);
-    } finally {
-      setLoading(false);
+      await api.post("/auth/request-otp", { telephone: form.telephone });
+      setStep("verify");
+      Alert.alert("Info", "Code envoye. Saisissez-le et completez vos infos.");
+    } catch (err) {
+      Alert.alert("Erreur", err.response?.data?.error || "OTP impossible");
     }
+    setLoading(false);
+  };
+
+  const skipPhone = () => {
+    setStep("register");
+  };
+
+  const registerOnly = async () => {
+    if (!form.nom || !form.email || !form.password) {
+      Alert.alert("Erreur", "Veuillez remplir tous les champs");
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.post("/auth/register", {
+        nom: form.nom,
+        email: form.email,
+        telephone: form.telephone,
+        mot_de_passe: form.password,
+      });
+      Alert.alert("Succes", "Compte cree ! Vous pouvez vous connecter.");
+      navigation.goBack();
+    } catch (err) {
+      Alert.alert(
+        "Erreur",
+        err.response?.data?.error || "Inscription impossible",
+      );
+    }
+    setLoading(false);
+  };
+
+  const verifyAndRegister = async () => {
+    if (!form.nom || !form.email || !form.password || !form.code) {
+      Alert.alert("Erreur", "Veuillez remplir tous les champs");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data: check } = await api.post("/auth/verify-otp", {
+        telephone: form.telephone,
+        code: form.code,
+      });
+      await api.post("/auth/register", {
+        nom: form.nom,
+        email: form.email,
+        telephone: form.telephone,
+        mot_de_passe: form.password,
+        phone_verification_token: check?.phone_verification_token,
+      });
+      Alert.alert("Succes", "Compte cree ! Vous pouvez vous connecter.");
+      navigation.goBack();
+    } catch (err) {
+      Alert.alert(
+        "Erreur",
+        err.response?.data?.error || "Inscription impossible",
+      );
+    }
+    setLoading(false);
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.logo}>BTT-LUX</Text>
-        <Text style={styles.subtitle}>Panneaux fibrociment Luxerboard</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>Creer un compte</Text>
 
+      {step !== "register" ? (
         <TextInput
-          style={[styles.input, errors.email ? styles.inputError : null]}
-          placeholder="Email"
-          value={email}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          onChangeText={(value) => {
-            setEmail(value);
-            if (errors.email) {
-              setErrors((current) => ({ ...current, email: null }));
-            }
-          }}
+          style={styles.input}
+          placeholder="Telephone (+237...)"
+          value={form.telephone}
+          keyboardType="phone-pad"
+          onChangeText={update("telephone")}
         />
+      ) : null}
 
-        <TextInput
-          style={[styles.input, errors.password ? styles.inputError : null]}
-          placeholder="Mot de passe"
-          value={password}
-          secureTextEntry
-          onChangeText={(value) => {
-            setPassword(value);
-            if (errors.password) {
-              setErrors((current) => ({ ...current, password: null }));
-            }
-          }}
-        />
-
-        <TextInput
-          style={[styles.input, errors.otp ? styles.inputError : null]}
-          placeholder="Code OTP (si activé)"
-          value={otp}
-          keyboardType="number-pad"
-          onChangeText={(value) => {
-            setOtp(value);
-            if (errors.otp) {
-              setErrors((current) => ({ ...current, otp: null }));
-            }
-          }}
-        />
-
+      {step === "otp" ? (
         <TouchableOpacity
-          style={[styles.button, !formIsValid && styles.buttonDisabled]}
-          onPress={submit}
-          disabled={loading || !formIsValid}
+          style={styles.button}
+          onPress={requestOTP}
+          disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Se connecter</Text>
+            <Text style={styles.buttonText}>Recevoir le code</Text>
           )}
         </TouchableOpacity>
+      ) : null}
 
-        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.link}>Pas de compte ? S’inscrire</Text>
+      {step === "otp" ? (
+        <TouchableOpacity onPress={skipPhone}>
+          <Text style={styles.link}>Continuer sans verifier le telephone</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      ) : null}
+
+      {step !== "otp" ? (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Nom complet"
+            value={form.nom}
+            onChangeText={update("nom")}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={form.email}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            onChangeText={update("email")}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Mot de passe"
+            value={form.password}
+            secureTextEntry
+            onChangeText={update("password")}
+          />
+        </>
+      ) : null}
+
+      {step === "verify" ? (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Code OTP"
+            value={form.code}
+            keyboardType="number-pad"
+            onChangeText={update("code")}
+          />
+          <TouchableOpacity
+            style={styles.buttonGreen}
+            onPress={verifyAndRegister}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Verifier et creer le compte</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={skipPhone}>
+            <Text style={styles.link}>
+              Continuer sans verifier le telephone
+            </Text>
+          </TouchableOpacity>
+        </>
+      ) : null}
+
+      {step === "register" ? (
+        <TouchableOpacity
+          style={styles.buttonGreen}
+          onPress={registerOnly}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Creer le compte</Text>
+          )}
+        </TouchableOpacity>
+      ) : null}
+
+      <TouchableOpacity onPress={() => navigation.goBack()}>
+        <Text style={styles.link}>Retour a la connexion</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
@@ -161,41 +213,36 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: "#faf7f2",
   },
-  logo: {
-    fontSize: 40,
+  title: {
+    fontSize: 26,
     fontWeight: "800",
     color: "#92400e",
     textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#78350f",
-    textAlign: "center",
-    marginBottom: 32,
+    marginBottom: 24,
   },
   input: {
     borderWidth: 1,
     borderColor: "#e5e5e5",
     backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    borderRadius: 8,
+    padding: 14,
     fontSize: 16,
     marginBottom: 12,
-  },
-  inputError: {
-    borderColor: "#dc2626",
   },
   button: {
     backgroundColor: "#b45309",
     padding: 16,
-    borderRadius: 10,
+    borderRadius: 8,
     alignItems: "center",
     marginTop: 8,
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  buttonGreen: {
+    backgroundColor: "#15803d",
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 8,
   },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  link: { color: "#92400e", textAlign: "center", marginTop: 16, fontWeight: "600" },
+  link: { color: "#92400e", textAlign: "center", marginTop: 16 },
 });
