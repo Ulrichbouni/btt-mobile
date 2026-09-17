@@ -12,7 +12,7 @@ import {
 
 import api from "../services/api";
 
-const defaultForm = {
+const emptyForm = {
   nom: "",
   nom_en: "",
   epaisseur: "",
@@ -27,7 +27,7 @@ const defaultForm = {
 
 export default function AdminProductsScreen() {
   const [products, setProducts] = useState([]);
-  const [form, setForm] = useState(defaultForm);
+  const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +47,9 @@ export default function AdminProductsScreen() {
     loadProducts();
   }, []);
 
-  const updateField = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const updateField = (key, value) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
 
   const submit = async () => {
     if (!form.nom.trim() || !form.epaisseur.trim() || !form.categorie.trim() || !form.prix_ttc) {
@@ -72,9 +74,9 @@ export default function AdminProductsScreen() {
         Alert.alert("Succès", "Produit créé");
       }
 
-      setForm(defaultForm);
+      setForm(emptyForm);
       setEditingId(null);
-      loadProducts();
+      await loadProducts();
     } catch (error) {
       Alert.alert("Erreur", error.response?.data?.error || "Opération impossible");
     }
@@ -106,7 +108,7 @@ export default function AdminProductsScreen() {
           try {
             await api.delete(`/products/${id}`);
             Alert.alert("Succès", "Produit supprimé");
-            loadProducts();
+            await loadProducts();
           } catch (error) {
             Alert.alert("Erreur", error.response?.data?.error || "Suppression impossible");
           }
@@ -164,13 +166,34 @@ export default function AdminProductsScreen() {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
   title: { fontSize: 26, fontWeight: "800", color: "#92400e", marginBottom: 16 },
-  formCard: { backgroundColor: "#fff", borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: "#f3e8d4" },
-  input: { borderWidth: 1, borderColor: "#e5e5e5", borderRadius: 8, padding: 12, marginBottom: 10, backgroundColor: "#fff" },
+  formCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#f3e8d4",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    backgroundColor: "#fff",
+  },
   submitButton: { backgroundColor: "#b45309", borderRadius: 8, padding: 12, alignItems: "center" },
   secondaryButton: { backgroundColor: "#0f766e", borderRadius: 8, padding: 10, flex: 1, alignItems: "center" },
   deleteButton: { backgroundColor: "#dc2626", borderRadius: 8, padding: 10, flex: 1, alignItems: "center" },
   buttonText: { color: "#fff", fontWeight: "700" },
-  productCard: { backgroundColor: "#fff", borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: "#f3e8d4" },
+  productCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#f3e8d4",
+  },
   productName: { fontSize: 17, fontWeight: "700", marginBottom: 4 },
   productMeta: { color: "#6b7280", marginBottom: 2 },
   actionRow: { flexDirection: "row", gap: 8, marginTop: 10 },

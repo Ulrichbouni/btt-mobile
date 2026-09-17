@@ -62,21 +62,23 @@ export default function App() {
   useEffect(() => {
     setOnUnauthorized(handleLogout);
 
-    let isMounted = true;
+    let mounted = true;
 
-    (async () => {
+    const bootstrap = async () => {
       try {
         const { user: sessionUser } = await getSession();
-        if (isMounted) setUser(sessionUser || null);
+        if (mounted) setUser(sessionUser || null);
       } catch {
-        if (isMounted) setUser(null);
+        if (mounted) setUser(null);
       } finally {
-        if (isMounted) setReady(true);
+        if (mounted) setReady(true);
       }
-    })();
+    };
+
+    bootstrap();
 
     return () => {
-      isMounted = false;
+      mounted = false;
     };
   }, []);
 
