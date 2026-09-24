@@ -1,19 +1,35 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import api from '../services/api';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+} from "react-native";
+import api from "../services/api";
 
 export default function MissionsScreen() {
   const [missions, setMissions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
   const load = async () => {
+    setError(null);
     try {
-      const { data } = await api.get('/missions/technicien/mes-missions');
+      const { data } = await api.get("/missions/technicien/mes-missions");
       setMissions(data);
-    } catch (e) {}
+    } catch (e) {
+      setError(
+        e.response?.data?.error ||
+          e.message ||
+          "Erreur de chargement des missions",
+      );
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -24,8 +40,15 @@ export default function MissionsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>📋 Mes Missions</Text>
-      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-        {missions.length === 0 && <Text style={styles.empty}>Aucune mission</Text>}
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {error ? <Text style={styles.error}>⚠️ {error}</Text> : null}
+        {!error && missions.length === 0 && (
+          <Text style={styles.empty}>Aucune mission</Text>
+        )}
         {missions.map((m) => (
           <View key={m.id} style={styles.card}>
             <Text style={styles.missionTitle}>Mission #{m.id}</Text>
@@ -41,11 +64,28 @@ export default function MissionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#faf7f2' },
-  title: { fontSize: 24, fontWeight: '800', color: '#92400e', marginBottom: 16 },
-  empty: { color: '#6b7280', textAlign: 'center', padding: 24 },
-  card: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 10 },
-  missionTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  info: { fontSize: 14, color: '#374151', marginTop: 4 },
-  statut: { fontSize: 13, color: '#92400e', marginTop: 6, fontWeight: '600' },
+  container: { flex: 1, padding: 16, backgroundColor: "#faf7f2" },
+  title: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#92400e",
+    marginBottom: 16,
+  },
+  error: {
+    color: "#b91c1c",
+    backgroundColor: "#fee2e2",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  empty: { color: "#6b7280", textAlign: "center", padding: 24 },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
+  },
+  missionTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  info: { fontSize: 14, color: "#374151", marginTop: 4 },
+  statut: { fontSize: 13, color: "#92400e", marginTop: 6, fontWeight: "600" },
 });
