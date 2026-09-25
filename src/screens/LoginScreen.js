@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
@@ -7,19 +7,19 @@ import api from '../services/api';
 import { saveSession } from '../services/auth';
 
 export default function LoginScreen({ navigation, onLogin }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
     if (!email || !password) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
     }
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', {
+      const { data } = await api.post("/auth/login", {
         email,
         mot_de_passe: password,
         otp_token: otp || undefined,
@@ -65,11 +65,19 @@ export default function LoginScreen({ navigation, onLogin }) {
         onChangeText={setOtp}
       />
 
-      <TouchableOpacity style={styles.button} onPress={submit} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Se connecter</Text>}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={submit}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Se connecter</Text>
+        )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+      <TouchableOpacity onPress={() => navigation.navigate("Register")}>
         <Text style={styles.link}>Pas de compte ? S'inscrire</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -83,12 +91,21 @@ const styles = StyleSheet.create({
   logo: { fontSize: 40, fontWeight: '800', color: '#92400e', textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#78350f', textAlign: 'center', marginBottom: 32 },
   input: {
-    borderWidth: 1, borderColor: '#e5e5e5', backgroundColor: '#fff',
-    borderRadius: 8, padding: 14, fontSize: 16, marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 14,
+    fontSize: 16,
+    marginBottom: 12,
   },
   button: {
-    backgroundColor: '#b45309', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 8,
+    backgroundColor: "#b45309",
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 8,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  link: { color: '#92400e', textAlign: 'center', marginTop: 16 },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  link: { color: "#92400e", textAlign: "center", marginTop: 16 },
 });

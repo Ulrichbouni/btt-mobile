@@ -5,33 +5,52 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-import { getSession } from './src/services/auth';
+import { getSession, clearSession } from "./src/services/auth";
+import { setOnUnauthorized } from "./src/services/api";
 
-import LoginScreen from './src/screens/LoginScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import PaiementScreen from './src/screens/PaiementScreen';
-import MissionsScreen from './src/screens/MissionsScreen';
-import CatalogueScreen from './src/screens/CatalogueScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
-import SimpleScreen from './src/screens/SimpleScreen';
+import LoginScreen from "./src/screens/LoginScreen";
+import RegisterScreen from "./src/screens/RegisterScreen";
+import HomeScreen from "./src/screens/HomeScreen";
+import PaiementScreen from "./src/screens/PaiementScreen";
+import MissionsScreen from "./src/screens/MissionsScreen";
+import CatalogueScreen from "./src/screens/CatalogueScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
+import SimpleScreen from "./src/screens/SimpleScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const BROWSER_SCREENS = {
-  Calculator: { title: '🧮 Calculateur' },
-  Devis: { title: '📄 Demande de devis' },
-  Notifications: { title: '🔔 Notifications' },
+  Calculator: { title: "🧮 Calculateur" },
+  Devis: { title: "📄 Demande de devis" },
+  Notifications: { title: "🔔 Notifications" },
 };
 
 function HomeTabs({ user, onLogout }) {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false, tabBarActiveTintColor: '#b45309' }}>
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'Accueil', tabBarIcon: () => null }} />
-      <Tab.Screen name="Catalogue" component={CatalogueScreen} options={{ tabBarLabel: 'Catalogue' }} />
-      <Tab.Screen name="Paiement" component={PaiementScreen} options={{ tabBarLabel: 'Paiement' }} />
-      <Tab.Screen name="Missions" component={MissionsScreen} options={{ tabBarLabel: 'Missions' }} />
+    <Tab.Navigator
+      screenOptions={{ headerShown: false, tabBarActiveTintColor: "#b45309" }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ tabBarLabel: "Accueil", tabBarIcon: () => null }}
+      />
+      <Tab.Screen
+        name="Catalogue"
+        component={CatalogueScreen}
+        options={{ tabBarLabel: "Catalogue" }}
+      />
+      <Tab.Screen
+        name="Paiement"
+        component={PaiementScreen}
+        options={{ tabBarLabel: "Paiement" }}
+      />
+      <Tab.Screen
+        name="Missions"
+        component={MissionsScreen}
+        options={{ tabBarLabel: "Missions" }}
+      />
       <Tab.Screen name="Profil">
         {() => <ProfileScreen user={user} onLogout={onLogout} />}
       </Tab.Screen>
@@ -44,6 +63,10 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   React.useEffect(() => {
+    setOnUnauthorized(async () => {
+      await clearSession();
+      setUser(null);
+    });
     (async () => {
       const session = await getSession();
       setUser(session.user);
@@ -66,9 +89,7 @@ export default function App() {
             {Object.entries(BROWSER_SCREENS).map(([name, params]) => (
               <Stack.Screen key={name} name={name}>
                 {({ route }) => (
-                  <SimpleScreen
-                    title={route?.params?.title || params.title}
-                  />
+                  <SimpleScreen title={route?.params?.title || params.title} />
                 )}
               </Stack.Screen>
             ))}
@@ -76,7 +97,9 @@ export default function App() {
         ) : (
           <>
             <Stack.Screen name="Login">
-              {({ navigation }) => <LoginScreen navigation={navigation} onLogin={setUser} />}
+              {({ navigation }) => (
+                <LoginScreen navigation={navigation} onLogin={setUser} />
+              )}
             </Stack.Screen>
             <Stack.Screen name="Register">
               {({ navigation }) => <RegisterScreen navigation={navigation} />}

@@ -36,3 +36,7 @@ _*.txt
 # OS
 .DS_Store
 Thumbs.db
+_*.log
+_*.err
+_*.txt
+apk-build.log
