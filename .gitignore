@@ -40,3 +40,20 @@ _*.log
 _*.err
 _*.txt
 apk-build.log
+
+# Environnement (jamais commiter de vrais secrets)
+.env
+.env.*
+!.env.example
+
+# Android (caches/sorties de build natif)
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/.cxx/
+
+# iOS (caches/sorties de build natif)
+ios/Pods/
+ios/build/
+ios/*.xcuserdata/

@@ -1,5 +1,5 @@
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from 'expo-secure-store';
 import Constants from "expo-constants";
 
 const DEFAULT_API_URL = 'https://btt-backend-sgas.onrender.com/api';
@@ -31,7 +31,7 @@ const api = axios.create({ baseURL: API_URL, timeout: 60000 });
 
 api.interceptors.request.use(async (config) => {
   try {
-    const token = await AsyncStorage.getItem("token");
+    const token = await SecureStore.getItemAsync("token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
   } catch (e) {}
   return config;
