@@ -4,25 +4,61 @@ import {
 } from 'react-native';
 import api from '../services/api';
 
-export default function PaiementScreen() {
+export default function PaiementScreen({ route }) {
   const [montant, setMontant] = useState('');
   const [phone, setPhone] = useState('');
-  const [devisId, setDevisId] = useState('');
+  const [devisId, setDevisId] = useState(route?.params?.devisId ? String(route.params.devisId) : '');
+  const [devis, setDevis] = useState(null);
+  const [devisError, setDevisError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [historique, setHistorique] = useState([]);
+  const [historiqueError, setHistoriqueError] = useState(null);
 
   const fetchHistorique = async () => {
+    setHistoriqueError(null);
     try {
       const { data } = await api.get('/paiements/historique');
       setHistorique(data);
-    } catch (e) {}
+    } catch (e) {
+      setHistoriqueError(e.response?.data?.error || e.message || 'Erreur de chargement');
+    }
   };
 
   useEffect(() => { fetchHistorique(); }, []);
 
+  // Dès qu'un devis_id est renseigné, on va chercher son montant réel côté serveur
+  // (impossible de payer un montant libre pour un devis : le serveur vérifie la correspondance)
+  useEffect(() => {
+    if (!devisId) { setDevis(null); setDevisError(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get(`/devis/${devisId}`);
+        if (cancelled) return;
+        setDevis(data);
+        setDevisError(null);
+        if (data.total_final !== null && data.total_final !== undefined) {
+          setMontant(String(data.total_final));
+        } else {
+          setMontant('');
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setDevis(null);
+        setDevisError(e.response?.data?.error || 'Devis introuvable');
+        setMontant('');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [devisId]);
+
+  const montantLocked = !!devisId && !!devis;
+  const devisNonValide = !!devisId && devis && (devis.total_final === null || devis.total_final === undefined);
+
   const payer = async () => {
     if (!montant || montant <= 0) return Alert.alert('Erreur', 'Montant invalide');
     if (!phone || phone.length < 8) return Alert.alert('Erreur', 'Numéro invalide');
+    if (devisNonValide) return Alert.alert('Erreur', "Ce devis n'a pas encore été validé par l'équipe, paiement impossible pour l'instant");
     setLoading(true);
     try {
       const { data } = await api.post('/paiements/initier', {
@@ -45,18 +81,32 @@ export default function PaiementScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>💳 Paiement</Text>
-      <TextInput style={styles.input} placeholder="Montant (FCFA)" keyboardType="numeric"
-        value={montant} onChangeText={setMontant} />
-      <TextInput style={styles.input} placeholder="Téléphone Mobile Money"
-        keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+
       <TextInput style={styles.input} placeholder="Devis ID (optionnel)" keyboardType="numeric"
         value={devisId} onChangeText={setDevisId} />
+      {devisError ? <Text style={styles.error}>⚠️ {devisError}</Text> : null}
+      {devisNonValide ? <Text style={styles.warning}>⏳ Ce devis n'a pas encore de prix validé par l'équipe.</Text> : null}
+
+      <TextInput
+        style={[styles.input, montantLocked && styles.inputLocked]}
+        placeholder="Montant (FCFA)"
+        keyboardType="numeric"
+        value={montant}
+        onChangeText={montantLocked ? undefined : setMontant}
+        editable={!montantLocked}
+      />
+      {montantLocked && <Text style={styles.hint}>Montant fixé par le devis #{devisId}, non modifiable.</Text>}
+
+      <TextInput style={styles.input} placeholder="Téléphone Mobile Money"
+        keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+
       <TouchableOpacity style={styles.button} onPress={payer} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Payer via Campay</Text>}
       </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Historique</Text>
-      {historique.length === 0 && <Text style={styles.empty}>Aucun paiement</Text>}
+      {historiqueError ? <Text style={styles.error}>⚠️ {historiqueError}</Text> : null}
+      {!historiqueError && historique.length === 0 && <Text style={styles.empty}>Aucun paiement</Text>}
       {historique.map((p) => (
         <View key={p.id} style={styles.item}>
           <Text style={styles.itemAmount}>{p.montant?.toLocaleString()} FCFA</Text>
@@ -71,10 +121,14 @@ export default function PaiementScreen() {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 16, backgroundColor: '#faf7f2' },
   title: { fontSize: 24, fontWeight: '800', color: '#92400e', marginBottom: 16 },
+  error: { color: '#b91c1c', backgroundColor: '#fee2e2', padding: 10, borderRadius: 8, marginBottom: 12 },
+  warning: { color: '#92400e', backgroundColor: '#fef3c7', padding: 10, borderRadius: 8, marginBottom: 12 },
+  hint: { color: '#6b7280', fontSize: 12, marginTop: -8, marginBottom: 12 },
   input: {
     borderWidth: 1, borderColor: '#e5e5e5', backgroundColor: '#fff',
     borderRadius: 8, padding: 14, fontSize: 16, marginBottom: 12,
   },
+  inputLocked: { backgroundColor: '#f3f4f6', color: '#6b7280' },
   button: {
     backgroundColor: '#16a34a', padding: 16, borderRadius: 8, alignItems: 'center', marginBottom: 24,
   },

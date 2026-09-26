@@ -5,12 +5,16 @@ import api from '../services/api';
 export default function CatalogueScreen() {
   const [produits, setProduits] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
   const load = async () => {
+    setError(null);
     try {
       const { data } = await api.get('/products');
       setProduits(data);
-    } catch (e) {}
+    } catch (e) {
+      setError(e.response?.data?.error || e.message || 'Erreur de chargement du catalogue');
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -18,6 +22,7 @@ export default function CatalogueScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>📦 Catalogue</Text>
+      {error ? <Text style={styles.error}>⚠️ {error}</Text> : null}
       <FlatList
         data={produits}
         keyExtractor={(item) => String(item.id)}
@@ -25,7 +30,7 @@ export default function CatalogueScreen() {
           <RefreshControl refreshing={refreshing}
             onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />
         }
-        ListEmptyComponent={<Text style={styles.empty}>Aucun produit</Text>}
+        ListEmptyComponent={!error ? <Text style={styles.empty}>Aucun produit</Text> : null}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Text style={styles.name}>{item.nom}</Text>
@@ -41,6 +46,7 @@ export default function CatalogueScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#faf7f2' },
   title: { fontSize: 24, fontWeight: '800', color: '#92400e', marginBottom: 16 },
+  error: { color: '#b91c1c', backgroundColor: '#fee2e2', padding: 10, borderRadius: 8, marginBottom: 12 },
   empty: { color: '#6b7280', textAlign: 'center', padding: 24 },
   card: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 10 },
   name: { fontSize: 16, fontWeight: '700', color: '#111827' },
