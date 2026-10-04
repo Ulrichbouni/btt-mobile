@@ -178,11 +178,12 @@ function HomeTabs({ user, onLogout, onUserUpdated }) {
           tabBarIcon: tabIcon("person", "person-outline"),
         }}
       >
-        {() => (
+        {({ navigation }) => (
           <ProfileScreen
             user={user}
             onLogout={onLogout}
             onUserUpdated={onUserUpdated}
+            navigation={navigation}
           />
         )}
       </Tab.Screen>

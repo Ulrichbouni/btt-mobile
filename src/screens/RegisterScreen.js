@@ -1,17 +1,14 @@
 import React, { useState } from "react";
-import {
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-} from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
+
+import { AuthShell, Button, Field } from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
+import { COLORS, FONTS } from "../theme/theme";
 
 export default function RegisterScreen({ navigation }) {
-  const [step, setStep] = useState("form");
+  const { t } = useI18n();
+  const [step, setStep] = useState("form"); // 'form' | 'verify'
   const [form, setForm] = useState({
     nom: "",
     email: "",
@@ -28,22 +25,19 @@ export default function RegisterScreen({ navigation }) {
     const email = form.email.trim().toLowerCase();
 
     if (!form.nom.trim() || !email || !form.password || !form.confirmPassword) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs");
+      Alert.alert(t("common.error"), t("auth.fillAllFields"));
       return;
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      Alert.alert("Erreur", "Veuillez saisir une adresse email valide");
+      Alert.alert(t("common.error"), t("auth.invalidEmail"));
       return;
     }
-
     if (form.password !== form.confirmPassword) {
-      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
+      Alert.alert(t("common.error"), t("auth.passwordsMismatch"));
       return;
     }
-
     if (form.password.length < 6) {
-      Alert.alert("Erreur", "Le mot de passe doit faire au moins 6 caractères");
+      Alert.alert(t("common.error"), t("auth.passwordTooShort"));
       return;
     }
 
@@ -52,11 +46,11 @@ export default function RegisterScreen({ navigation }) {
       await api.post("/auth/request-otp-email", { email });
       setForm((current) => ({ ...current, email }));
       setStep("verify");
-      Alert.alert("Vérification", "Un code a été envoyé à votre adresse email.");
+      Alert.alert(t("auth.codeSentTitle"), t("auth.codeSentMessage"));
     } catch (error) {
       Alert.alert(
-        "Erreur",
-        error.response?.data?.error || "Impossible d'envoyer le code"
+        t("common.error"),
+        error.response?.data?.error || t("auth.sendCodeFailed"),
       );
     } finally {
       setLoading(false);
@@ -68,7 +62,7 @@ export default function RegisterScreen({ navigation }) {
     const code = verificationCode.trim();
 
     if (!/^\d{6}$/.test(code)) {
-      Alert.alert("Erreur", "Le code doit contenir 6 chiffres");
+      Alert.alert(t("common.error"), t("auth.invalidCode"));
       return;
     }
 
@@ -86,12 +80,12 @@ export default function RegisterScreen({ navigation }) {
         email_verification_token: data.email_verification_token,
       });
 
-      Alert.alert("Succès", "Compte créé. Vous pouvez vous connecter.");
+      Alert.alert(t("common.success"), t("auth.accountCreated"));
       navigation.goBack();
     } catch (error) {
       Alert.alert(
-        "Erreur",
-        error.response?.data?.error || "Vérification impossible"
+        t("common.error"),
+        error.response?.data?.error || t("auth.verifyFailed"),
       );
     } finally {
       setLoading(false);
@@ -99,126 +93,98 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Créer un compte</Text>
-
+    <AuthShell
+      navigation={navigation}
+      activeTab="register"
+      title={t("auth.registerTitle")}
+      subtitle={t("auth.registerSubtitle")}
+    >
       {step === "form" ? (
         <>
-          <TextInput
-            style={styles.input}
-            placeholder="Nom complet"
+          <Field
+            label={t("auth.fullName")}
+            icon="person-outline"
             value={form.nom}
             onChangeText={update("nom")}
             autoCapitalize="words"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
+          <Field
+            label={t("auth.email")}
+            icon="mail-outline"
             value={form.email}
             keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
             onChangeText={update("email")}
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Mot de passe"
+          <Field
+            label={t("auth.password")}
+            icon="lock-closed-outline"
             value={form.password}
-            secureTextEntry
             onChangeText={update("password")}
+            password
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Confirmer le mot de passe"
+          <Field
+            label={t("auth.confirmPassword")}
+            icon="lock-closed-outline"
             value={form.confirmPassword}
-            secureTextEntry
             onChangeText={update("confirmPassword")}
+            password
           />
-          <TouchableOpacity
-            style={styles.button}
+          <Button
+            label={t("auth.receiveCode")}
             onPress={requestEmailVerification}
+            loading={loading}
             disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Recevoir le code email</Text>
-            )}
-          </TouchableOpacity>
+          />
         </>
       ) : (
         <>
-          <Text style={styles.subtitle}>
-            Saisissez le code reçu à {"\n"}{form.email}
+          <Text style={styles.codeHint}>
+            {t("auth.codeSentTo", { email: form.email })}
           </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Code email à 6 chiffres"
+          <Field
+            label={t("auth.codeLabel")}
+            icon="keypad-outline"
             value={verificationCode}
             keyboardType="number-pad"
             maxLength={6}
             onChangeText={setVerificationCode}
           />
-          <TouchableOpacity
-            style={styles.button}
+          <Button
+            label={t("auth.verifyCode")}
             onPress={verifyAndRegister}
+            loading={loading}
+            disabled={loading}
+            variant="green"
+          />
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={() => setStep("form")}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Vérifier et créer le compte</Text>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setStep("form")} disabled={loading}>
-            <Text style={styles.link}>Modifier mon email</Text>
+            <Text style={styles.link}>{t("auth.changeEmail")}</Text>
           </TouchableOpacity>
         </>
       )}
 
-      <TouchableOpacity onPress={() => navigation.goBack()} disabled={loading}>
-        <Text style={styles.link}>Retour à la connexion</Text>
+      <TouchableOpacity
+        style={styles.linkRow}
+        onPress={() => navigation.goBack()}
+        disabled={loading}
+      >
+        <Text style={styles.link}>{t("auth.backToLogin")}</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#faf7f2",
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#92400e",
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  subtitle: {
+  codeHint: {
+    color: COLORS.text,
+    fontFamily: FONTS.regular,
     fontSize: 14,
-    color: "#78350f",
-    textAlign: "center",
+    lineHeight: 21,
     marginBottom: 16,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  button: {
-    backgroundColor: "#15803d",
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  link: { color: "#92400e", textAlign: "center", marginTop: 16 },
+  linkRow: { alignItems: "center", marginTop: 18 },
+  link: { color: COLORS.primary, fontFamily: FONTS.semiBold, fontSize: 14 },
 });

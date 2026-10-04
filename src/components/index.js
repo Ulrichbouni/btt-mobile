@@ -20,3 +20,4 @@ export { default as Avatar, initialsFromName } from "./Avatar";
 export { default as EmptyState } from "./EmptyState";
 export { default as Fab } from "./Fab";
 export { default as LangBadge } from "./LangBadge";
+export { default as AuthShell } from "./AuthShell";

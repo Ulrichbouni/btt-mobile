@@ -1,36 +1,71 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
-import api from '../services/api';
-import { clearSession, updateSessionUser, updateSessionToken } from '../services/auth';
+import React, { useState, useEffect } from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
-export default function ProfileScreen({ user, onLogout, onUserUpdated }) {
-  const [form, setForm] = useState({ nom: '', email: '', telephone: '', mot_de_passe: '' });
+import {
+  AppHeader,
+  Avatar,
+  Button,
+  Card,
+  Field,
+  LangBadge,
+  Screen,
+  SectionHeader,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
+import api from "../services/api";
+import {
+  clearSession,
+  updateSessionUser,
+  updateSessionToken,
+} from "../services/auth";
+import { COLORS, FONTS, SPACING } from "../theme/theme";
+
+export default function ProfileScreen({
+  user,
+  onLogout,
+  onUserUpdated,
+  navigation,
+}) {
+  const { t } = useI18n();
+  const [form, setForm] = useState({
+    nom: "",
+    email: "",
+    telephone: "",
+    mot_de_passe: "",
+  });
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [role, setRole] = useState(user?.role || '');
+  const [role, setRole] = useState(user?.role || "");
 
   // Recharge le profil en base (rôle inclus) et répercute la session :
   // une promotion client -> technicien devient visible sans reconnexion.
   useEffect(() => {
     let cancelled = false;
 
-    api.get('/auth/me').then(async (res) => {
-      if (cancelled) return;
-      const fresh = res.data || {};
-      setForm({
-        nom: fresh.nom || '',
-        email: fresh.email || '',
-        telephone: fresh.telephone || '',
-        mot_de_passe: ''
-      });
-      if (fresh.role) setRole(fresh.role);
+    api
+      .get("/auth/me")
+      .then(async (res) => {
+        if (cancelled) return;
+        const fresh = res.data || {};
+        setForm({
+          nom: fresh.nom || "",
+          email: fresh.email || "",
+          telephone: fresh.telephone || "",
+          mot_de_passe: "",
+        });
+        if (fresh.role) setRole(fresh.role);
 
-      const merged = { ...(user || {}), ...fresh };
-      await updateSessionUser(merged);
-      if (onUserUpdated) onUserUpdated(merged);
-    }).catch(() => {});
+        const merged = { ...(user || {}), ...fresh };
+        await updateSessionUser(merged);
+        if (onUserUpdated) onUserUpdated(merged);
+      })
+      .catch(() => {});
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
   const handleSave = async () => {
@@ -42,12 +77,12 @@ export default function ProfileScreen({ user, onLogout, onUserUpdated }) {
       if (form.telephone) body.telephone = form.telephone;
       if (form.mot_de_passe) body.mot_de_passe = form.mot_de_passe;
 
-      const res = await api.put('/auth/me', body);
+      const res = await api.put("/auth/me", body);
       const updated = res.data?.user || res.data;
       // Après un changement de mot de passe, l'ancien JWT est révoqué :
       // le backend renvoie un nouveau token pour l'appareil courant.
       const newToken = res.data?.token;
-      if (typeof newToken === 'string' && newToken.length > 0) {
+      if (typeof newToken === "string" && newToken.length > 0) {
         await updateSessionToken(newToken);
       }
       if (updated) {
@@ -56,10 +91,13 @@ export default function ProfileScreen({ user, onLogout, onUserUpdated }) {
         await updateSessionUser(merged);
         if (onUserUpdated) onUserUpdated(merged);
       }
-      Alert.alert('Succès', 'Profil mis à jour !');
+      Alert.alert(t("common.success"), t("profile.updated"));
       setEditing(false);
     } catch (err) {
-      Alert.alert('Erreur', err.response?.data?.error || 'Erreur lors de la mise à jour');
+      Alert.alert(
+        t("common.error"),
+        err.response?.data?.error || t("profile.updateError"),
+      );
     }
     setLoading(false);
   };
@@ -70,91 +108,164 @@ export default function ProfileScreen({ user, onLogout, onUserUpdated }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Mon Profil</Text>
+    <Screen contentStyle={styles.content}>
+      <AppHeader
+        showBell
+        onBell={() => navigation?.navigate("Notifications")}
+        name={user?.nom}
+      />
+      <SectionHeader
+        icon="person"
+        tone="beige"
+        title={t("profile.title")}
+        subtitle={t("profile.subtitle")}
+      />
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Nom</Text>
-        <TextInput
-          style={[styles.input, !editing && styles.readonly]}
+      <Card style={styles.identity}>
+        <Avatar name={form.nom || user?.nom} size={64} />
+        <View style={styles.identityText}>
+          <Text style={styles.identityName} numberOfLines={1}>
+            {form.nom || user?.nom || "—"}
+          </Text>
+          <Text style={styles.identityEmail} numberOfLines={1}>
+            {form.email || user?.email || "—"}
+          </Text>
+        </View>
+        <StatusPill
+          tone="neutral"
+          label={t(`roles.${role || "client"}`)}
+          small
+        />
+      </Card>
+
+      <Card>
+        <Field
+          label={t("profile.name")}
+          icon="person-outline"
           value={form.nom}
           onChangeText={(v) => setForm({ ...form, nom: v })}
           editable={editing}
+          autoCapitalize="words"
         />
-
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={[styles.input, !editing && styles.readonly]}
+        <Field
+          label={t("profile.email")}
+          icon="mail-outline"
           value={form.email}
           onChangeText={(v) => setForm({ ...form, email: v })}
           editable={editing}
           keyboardType="email-address"
-          autoCapitalize="none"
         />
-
-        <Text style={styles.label}>Téléphone</Text>
-        <TextInput
-          style={[styles.input, !editing && styles.readonly]}
+        <Field
+          label={t("profile.phone")}
+          icon="call-outline"
           value={form.telephone}
           onChangeText={(v) => setForm({ ...form, telephone: v })}
           editable={editing}
           keyboardType="phone-pad"
-          placeholder="+237655505798"
+          style={editing ? undefined : styles.lastField}
         />
-
         {editing && (
-          <>
-            <Text style={styles.label}>Nouveau mot de passe (optionnel)</Text>
-            <TextInput
-              style={styles.input}
-              value={form.mot_de_passe}
-              onChangeText={(v) => setForm({ ...form, mot_de_passe: v })}
-              secureTextEntry
-              placeholder="Laisser vide pour ne pas changer"
-            />
-          </>
+          <Field
+            label={t("profile.newPassword")}
+            icon="lock-closed-outline"
+            value={form.mot_de_passe}
+            onChangeText={(v) => setForm({ ...form, mot_de_passe: v })}
+            password
+            style={styles.lastField}
+          />
         )}
-
-        <Text style={styles.role}>Rôle: {role || '—'}</Text>
-      </View>
+      </Card>
 
       {!editing ? (
-        <TouchableOpacity style={styles.editBtn} onPress={() => setEditing(true)}>
-          <Text style={styles.editBtnText}>Modifier le profil</Text>
-        </TouchableOpacity>
+        <Button
+          label={t("profile.edit")}
+          icon="create-outline"
+          variant="soft"
+          onPress={() => setEditing(true)}
+          style={styles.action}
+        />
       ) : (
         <View style={styles.row}>
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
-            <Text style={styles.saveBtnText}>{loading ? 'Enregistrement...' : 'Enregistrer'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditing(false)}>
-            <Text style={styles.cancelBtnText}>Annuler</Text>
-          </TouchableOpacity>
+          <Button
+            label={loading ? t("profile.saving") : t("profile.save")}
+            onPress={handleSave}
+            loading={loading}
+            disabled={loading}
+            style={styles.rowItem}
+          />
+          <Button
+            label={t("common.cancel")}
+            variant="outline"
+            onPress={() => setEditing(false)}
+            disabled={loading}
+            style={styles.rowItem}
+          />
         </View>
       )}
 
-      <TouchableOpacity style={styles.logout} onPress={logout}>
-        <Text style={styles.logoutText}>Se déconnecter</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      <Card style={styles.rowCard} onPress={() => navigation?.navigate("OTPSetup")}>
+        <View style={styles.rowLeft}>
+          <Ionicons name="shield-checkmark-outline" size={19} color={COLORS.primary} />
+          <View style={styles.rowTextBox}>
+            <Text style={styles.rowLabel}>{t("profile.security")}</Text>
+            <Text style={styles.rowHint}>{t("profile.securityHint")}</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={COLORS.muted} />
+      </Card>
+
+      <Card style={styles.rowCard}>
+        <View style={styles.rowLeft}>
+          <Ionicons name="globe-outline" size={19} color={COLORS.primary} />
+          <View style={styles.rowTextBox}>
+            <Text style={styles.rowLabel}>{t("profile.language")}</Text>
+            <Text style={styles.rowHint}>Français / English</Text>
+          </View>
+        </View>
+        <LangBadge />
+      </Card>
+
+      <Button
+        label={t("profile.logout")}
+        icon="log-out-outline"
+        variant="danger"
+        onPress={logout}
+        style={styles.logout}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: '#faf7f2' },
-  title: { fontSize: 24, fontWeight: '800', color: '#92400e', marginBottom: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 10, padding: 16, marginBottom: 16 },
-  label: { fontSize: 12, color: '#6b7280', marginTop: 8, marginBottom: 4 },
-  input: { borderWidth: 1, borderColor: '#e5e5e5', borderRadius: 8, padding: 12, fontSize: 16, backgroundColor: '#fff' },
-  readonly: { backgroundColor: '#f9fafb', color: '#374151' },
-  role: { fontSize: 14, color: '#92400e', marginTop: 12, fontWeight: '600' },
-  row: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  editBtn: { backgroundColor: '#b45309', padding: 16, borderRadius: 8, alignItems: 'center', marginBottom: 16 },
-  editBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  saveBtn: { flex: 1, backgroundColor: '#16a34a', padding: 16, borderRadius: 8, alignItems: 'center' },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  cancelBtn: { flex: 1, backgroundColor: '#6b7280', padding: 16, borderRadius: 8, alignItems: 'center' },
-  cancelBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  logout: { backgroundColor: '#dc2626', padding: 16, borderRadius: 8, alignItems: 'center' },
-  logoutText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  content: { paddingBottom: SPACING.xxl },
+  identity: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
+  identityText: { flex: 1, marginLeft: 14, marginRight: 10 },
+  identityName: { color: COLORS.ink, fontFamily: FONTS.bold, fontSize: 18 },
+  identityEmail: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  lastField: { marginBottom: 0 },
+  action: { marginTop: 14 },
+  row: { flexDirection: "row", marginTop: 14 },
+  rowItem: { flex: 1, marginHorizontal: 4 },
+  rowCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 14,
+    paddingVertical: 16,
+  },
+  rowLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
+  rowTextBox: { marginLeft: 12, flex: 1 },
+  rowLabel: { color: COLORS.ink, fontFamily: FONTS.semiBold, fontSize: 15 },
+  rowHint: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    marginTop: 1,
+  },
+  logout: { marginTop: 20 },
 });
