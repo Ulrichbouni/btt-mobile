@@ -8,10 +8,10 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Linking,
 } from "react-native";
 
 import api from "../services/api";
+import { telechargerDevisPDF } from "../services/pdf";
 
 const STATUTS = ["envoye", "accepte", "paye", "annule"];
 
@@ -26,6 +26,7 @@ export default function AdminDevisScreen() {
     frais_divers: "",
   });
   const [saving, setSaving] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -134,14 +135,16 @@ export default function AdminDevisScreen() {
     ]);
   };
 
+  // GET /api/devis/:id/pdf exige l'en-tête Authorization : on télécharge le
+  // PDF avec le token puis on le partage (l'ancien Linking.openURL renvoyait 401).
   const voirPDF = async (id) => {
-    const url = `${api.defaults.baseURL}/devis/${id}/pdf`;
+    setPdfLoading(id);
     try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) await Linking.openURL(url);
-      else Alert.alert("Erreur", "Impossible d'ouvrir le PDF");
+      await telechargerDevisPDF(id);
     } catch (e) {
-      Alert.alert("Erreur", "Impossible d'ouvrir le PDF");
+      Alert.alert("Erreur", e.message || "Impossible d'ouvrir le PDF");
+    } finally {
+      setPdfLoading(null);
     }
   };
 
@@ -255,10 +258,13 @@ export default function AdminDevisScreen() {
               )}
 
               <TouchableOpacity
-                style={styles.pdfBtn}
+                style={[styles.pdfBtn, pdfLoading === d.id && styles.disabled]}
                 onPress={() => voirPDF(d.id)}
+                disabled={pdfLoading === d.id}
               >
-                <Text style={styles.white}>PDF</Text>
+                <Text style={styles.white}>
+                  {pdfLoading === d.id ? "PDF..." : "PDF"}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity

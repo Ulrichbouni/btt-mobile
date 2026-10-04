@@ -1,6 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+import { readToken, updateSessionToken } from "./auth";
 
 const resolveApiBaseUrl = () => {
   const extra = Constants.expoConfig?.extra || Constants.manifest?.extra || {};
@@ -26,7 +27,8 @@ const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   try {
-    const token = await AsyncStorage.getItem("token");
+    // SecureStore d'abord (Keychain/Keystore), repli sur l'ancien AsyncStorage.
+    const token = (await readToken()) || (await AsyncStorage.getItem("token"));
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
@@ -45,7 +47,15 @@ export const setOnUnauthorized = (callback) => {
 };
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Un changement de mot de passe révoque les anciens JWT : le backend
+    // renvoie un nouveau token que l'on propage immédiatement en session.
+    const newToken = response?.data?.token;
+    if (typeof newToken === "string" && newToken.length > 0) {
+      updateSessionToken(newToken).catch(() => {});
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401 && typeof onUnauthorized === "function") {
       onUnauthorized();

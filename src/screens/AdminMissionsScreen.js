@@ -16,6 +16,10 @@ const STATUTS = ["assignee", "en_cours", "terminee"];
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
+// Si l'admin saisit "2026-10-15", on envoie la date à midi UTC
+// (compromis qui reste le même jour calendaire pour UTC-12 → UTC+12).
+const toDateISO = (yyyyMmDd) => `${yyyyMmDd}T12:00:00.000Z`;
+
 export default function AdminMissionsScreen() {
   const [missions, setMissions] = useState([]);
   const [users, setUsers] = useState([]);
@@ -75,9 +79,12 @@ export default function AdminMissionsScreen() {
       Alert.alert("Erreur", "Renseignez l'ID du devis");
       return;
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date_visite)) {
+      Alert.alert("Erreur", "Date au format AAAA-MM-JJ");
+      return;
+    }
 
-    // Convertir YYYY-MM-DD -> ISO datetime
-    const isoDate = `${form.date_visite}T09:00:00.000Z`;
+    const isoDate = toDateISO(form.date_visite);
 
     setSubmitting(true);
     try {

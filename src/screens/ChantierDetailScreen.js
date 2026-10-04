@@ -12,17 +12,9 @@ import {
 import * as ImagePicker from "expo-image-picker";
 
 import api from "../services/api";
+import { ETAPES, progressionPourcent } from "../constants/etapes";
 
-const ETAPES = [
-  "Devis reçu",
-  "Visite technique",
-  "Commande validée",
-  "Livraison",
-  "Pose en cours",
-  "Chantier terminé",
-];
-
-export default function ChantierDetailScreen({ route }) {
+export default function ChantierDetailScreen({ route, user }) {
   const { chantierId } = route.params;
   const [chantier, setChantier] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -142,6 +134,12 @@ export default function ChantierDetailScreen({ route }) {
     ? chantier.photos_apres
     : [];
 
+  // Mêmes règles que le backend : seul l'admin ou le technicien assigné
+  // peut avancer le chantier et ajouter des photos.
+  const canManage =
+    user?.role === "admin" ||
+    (user?.role === "technicien" && chantier.technicien_id === user?.id);
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Chantier #{chantier.id}</Text>
@@ -153,9 +151,16 @@ export default function ChantierDetailScreen({ route }) {
       </Text>
       <Text style={styles.etape}>Étape : {chantier.etape || "—"}</Text>
 
-      <TouchableOpacity style={styles.primary} onPress={avancer}>
-        <Text style={styles.white}>Avancer d'une étape</Text>
-      </TouchableOpacity>
+      {canManage ? (
+        <TouchableOpacity style={styles.primary} onPress={avancer}>
+          <Text style={styles.white}>Avancer d'une étape</Text>
+        </TouchableOpacity>
+      ) : (
+        <Text style={styles.readonlyNote}>
+          Consultation seule : seuls l'admin et le technicien assigné peuvent
+          faire avancer ce chantier.
+        </Text>
+      )}
 
       <Text style={styles.sectionTitle}>
         Photos avant ({photosAvant.length})
@@ -165,17 +170,19 @@ export default function ChantierDetailScreen({ route }) {
           <Image key={i} source={{ uri: url }} style={styles.photo} />
         ))}
       </View>
-      <TouchableOpacity
-        style={[styles.uploadBtn, uploadingType === "avant" && styles.disabled]}
-        onPress={() => pickAndUpload("avant")}
-        disabled={uploadingType === "avant"}
-      >
-        {uploadingType === "avant" ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.white}>+ Ajouter photos avant</Text>
-        )}
-      </TouchableOpacity>
+      {canManage && (
+        <TouchableOpacity
+          style={[styles.uploadBtn, uploadingType === "avant" && styles.disabled]}
+          onPress={() => pickAndUpload("avant")}
+          disabled={uploadingType === "avant"}
+        >
+          {uploadingType === "avant" ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.white}>+ Ajouter photos avant</Text>
+          )}
+        </TouchableOpacity>
+      )}
 
       <Text style={styles.sectionTitle}>
         Photos après ({photosApres.length})
@@ -185,17 +192,19 @@ export default function ChantierDetailScreen({ route }) {
           <Image key={i} source={{ uri: url }} style={styles.photo} />
         ))}
       </View>
-      <TouchableOpacity
-        style={[styles.uploadBtn, uploadingType === "apres" && styles.disabled]}
-        onPress={() => pickAndUpload("apres")}
-        disabled={uploadingType === "apres"}
-      >
-        {uploadingType === "apres" ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.white}>+ Ajouter photos après</Text>
-        )}
-      </TouchableOpacity>
+      {canManage && (
+        <TouchableOpacity
+          style={[styles.uploadBtn, uploadingType === "apres" && styles.disabled]}
+          onPress={() => pickAndUpload("apres")}
+          disabled={uploadingType === "apres"}
+        >
+          {uploadingType === "apres" ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.white}>+ Ajouter photos après</Text>
+          )}
+        </TouchableOpacity>
+      )}
 
       <Text style={styles.sectionTitle}>Historique</Text>
       {(Array.isArray(chantier.historique) ? chantier.historique : []).map(
@@ -262,4 +271,12 @@ const styles = StyleSheet.create({
   histAction: { fontSize: 13, fontWeight: "600", color: "#374151" },
   histDate: { fontSize: 11, color: "#9ca3af", marginTop: 2 },
   empty: { color: "#6b7280" },
+  readonlyNote: {
+    fontSize: 12,
+    color: "#6b7280",
+    backgroundColor: "#f3f4f6",
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 4,
+  },
 });

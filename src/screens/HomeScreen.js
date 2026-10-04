@@ -7,16 +7,36 @@ import {
   ScrollView,
 } from "react-native";
 
-const shortcuts = [
-  { label: "Catalogue", route: "Catalogue", emoji: "📦" },
-  { label: "Calculateur", route: "Calculator", emoji: "🧮" },
-  { label: "Devis", route: "Devis", emoji: "📄" },
-  { label: "Paiement", route: "Paiement", emoji: "💳" },
-  { label: "Missions", route: "Missions", emoji: "📋" },
-  { label: "Notifications", route: "Notifications", emoji: "🔔" },
-];
+// Raccourcis par rôle : les clients ne doivent jamais voir "Missions"
+// (réservé au technicien/admin par le backend), ni l'accès admin.
+const SHORTCUTS_BY_ROLE = {
+  client: [
+    { label: "Catalogue", route: "Catalogue", emoji: "📦" },
+    { label: "Calculateur", route: "Calculator", emoji: "🧮" },
+    { label: "Devis", route: "Devis", emoji: "📄" },
+    { label: "Mes Chantiers", route: "MesChantiers", emoji: "🏗️" },
+    { label: "Paiement", route: "Paiement", emoji: "💳" },
+    { label: "Notifications", route: "Notifications", emoji: "🔔" },
+  ],
+  technicien: [
+    { label: "Missions", route: "Missions", emoji: "📋" },
+    { label: "Mes Chantiers", route: "MesChantiers", emoji: "🏗️" },
+    { label: "Catalogue", route: "Catalogue", emoji: "📦" },
+    { label: "Notifications", route: "Notifications", emoji: "🔔" },
+  ],
+  admin: [
+    { label: "Missions", route: "Missions", emoji: "📋" },
+    { label: "Chantiers", route: "MesChantiers", emoji: "🏗️" },
+    { label: "Catalogue", route: "Catalogue", emoji: "📦" },
+    { label: "Calculateur", route: "Calculator", emoji: "🧮" },
+    { label: "Notifications", route: "Notifications", emoji: "🔔" },
+  ],
+};
 
 export default function HomeScreen({ navigation, user }) {
+  const shortcuts =
+    SHORTCUTS_BY_ROLE[user?.role] || SHORTCUTS_BY_ROLE.client;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.hero}>

@@ -10,17 +10,9 @@ import {
 } from "react-native";
 
 import api from "../services/api";
+import { ETAPES, progressionPourcent } from "../constants/etapes";
 
-const ETAPES = [
-  "Devis reçu",
-  "Visite technique",
-  "Commande validée",
-  "Livraison",
-  "Pose en cours",
-  "Chantier terminé",
-];
-
-export default function AdminChantiersScreen({ navigation }) {
+export default function AdminChantiersScreen({ navigation, user }) {
   const [chantiers, setChantiers] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -41,8 +33,18 @@ export default function AdminChantiersScreen({ navigation }) {
     return unsubscribe;
   }, [navigation]);
 
-  const avancer = (id, etapeActuelle) => {
-    const idx = ETAPES.indexOf(etapeActuelle);
+  // Seuls l'admin et le technicien assigné peuvent faire avancer le
+  // chantier (mêmes règles que ChantierDetailScreen).
+  const canManage = (chantier) => {
+    if (user?.role === "admin") return true;
+    return (
+      user?.role === "technicien" &&
+      chantier.technicien_id === user?.id
+    );
+  };
+
+  const avancer = (chantier) => {
+    const idx = ETAPES.indexOf(chantier.etape);
     if (idx >= ETAPES.length - 1) {
       Alert.alert("Info", "Chantier déjà à la dernière étape.");
       return;
@@ -54,7 +56,7 @@ export default function AdminChantiersScreen({ navigation }) {
         text: "Avancer",
         onPress: async () => {
           try {
-            await api.put(`/chantiers/${id}/avancer`);
+            await api.put(`/chantiers/${chantier.id}/avancer`);
             Alert.alert("Succès", `Étape : ${prochaine}`);
             await load();
           } catch (e) {
@@ -78,14 +80,14 @@ export default function AdminChantiersScreen({ navigation }) {
         <Text style={styles.empty}>Aucun chantier pour le moment.</Text>
       ) : (
         chantiers.map((c) => {
-          const idx = ETAPES.indexOf(c.etape);
-          const progress = idx >= 0 ? ((idx + 1) / ETAPES.length) * 100 : 0;
+          const progress = progressionPourcent(c.etape);
           const nbPhotosAvant = Array.isArray(c.photos_avant)
             ? c.photos_avant.length
             : 0;
           const nbPhotosApres = Array.isArray(c.photos_apres)
             ? c.photos_apres.length
             : 0;
+          const editable = canManage(c);
 
           return (
             <View key={c.id} style={styles.card}>
@@ -112,12 +114,20 @@ export default function AdminChantiersScreen({ navigation }) {
               </Text>
 
               <View style={styles.actionRow}>
-                <TouchableOpacity
-                  style={styles.primary}
-                  onPress={() => avancer(c.id, c.etape)}
-                >
-                  <Text style={styles.white}>Avancer</Text>
-                </TouchableOpacity>
+                {editable ? (
+                  <TouchableOpacity
+                    style={styles.primary}
+                    onPress={() => avancer(c)}
+                  >
+                    <Text style={styles.white}>Avancer</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.readonlyNote}>
+                    <Text style={styles.readonlyText}>
+                      Consultation seule
+                    </Text>
+                  </View>
+                )}
 
                 <TouchableOpacity
                   style={styles.photosBtn}
@@ -177,4 +187,12 @@ const styles = StyleSheet.create({
   },
   white: { color: "#fff", fontWeight: "700" },
   empty: { textAlign: "center", color: "#6b7280", marginTop: 20 },
+  readonlyNote: {
+    backgroundColor: "#f3f4f6",
+    padding: 10,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    justifyContent: "center",
+  },
+  readonlyText: { color: "#6b7280", fontWeight: "600", fontSize: 12 },
 });
