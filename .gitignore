@@ -14,11 +14,24 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+# Paquets produits (regeneres par node build-release.cjs)
+*.apk
+*.aab
 
 # Logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
+# Codes de sortie et rapports des scripts de verification
+*.exit.txt
+release-verification.json
+eas-status.*
+
+# Fichiers de travail prefixes par _ (config d'export, previews, scratch)
+_*.json
+_*.png
+_*.txt
 
 # OS
 .DS_Store
@@ -28,8 +41,22 @@ _*.err
 _*.txt
 apk-build.log
 assets/backup/
-
-assets/backup/
-
 /android/
 /ios/
+
+# Environnement (jamais commiter de vrais secrets)
+.env
+.env.*
+!.env.example
+
+# Android (caches/sorties de build natif)
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/.cxx/
+
+# iOS (caches/sorties de build natif)
+ios/Pods/
+ios/build/
+ios/*.xcuserdata/
