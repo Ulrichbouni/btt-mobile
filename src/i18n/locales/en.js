@@ -44,6 +44,7 @@ export default {
     refuse: "Rejected",
     paye: "Paid",
     bestseller: "Bestseller",
+    promo: "Promo",
     nouveau: "New",
     termine: "Completed",
     terminee: "Completed",

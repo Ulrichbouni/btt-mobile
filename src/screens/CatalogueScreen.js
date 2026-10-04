@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -11,15 +10,17 @@ import {
 import {
   AppHeader,
   Button,
+  CategoryTabs,
   EmptyState,
-  FilterPill,
   IconTile,
   Screen,
   SearchBar,
   SectionHeader,
+  StatusPill,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
+import { productStatus } from "../utils/produits";
 import { COLORS, FONTS, RADII, SPACING, formatXAF } from "../theme/theme";
 
 const normalize = (s) =>
@@ -105,27 +106,14 @@ export default function CatalogueScreen({ navigation }) {
       />
 
       {categories.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.pillsRow}
-        >
-          <FilterPill
-            label={t("catalogue.all")}
-            active={categorie === "all"}
-            onPress={() => setCategorie("all")}
-            style={styles.pill}
-          />
-          {categories.map((c) => (
-            <FilterPill
-              key={c}
-              label={c}
-              active={categorie === c}
-              onPress={() => setCategorie(c)}
-              style={styles.pill}
-            />
-          ))}
-        </ScrollView>
+        <CategoryTabs
+          value={categorie}
+          onChange={setCategorie}
+          tabs={[
+            { key: "all", label: t("catalogue.all") },
+            ...categories.map((c) => ({ key: c, label: c })),
+          ]}
+        />
       )}
 
       {loading ? (
@@ -156,29 +144,53 @@ export default function CatalogueScreen({ navigation }) {
         />
       ) : (
         <View style={styles.grid}>
-          {filtered.map((item) => (
-            <View key={item.id} style={styles.card}>
-              <View style={styles.thumb}>
-                <IconTile icon="albums-outline" tone="beige" size={54} />
+          {filtered.map((item) => {
+            const { badge, rupture, hasStock } = productStatus(item);
+            return (
+              <View key={item.id} style={styles.card}>
+                <View style={styles.thumb}>
+                  <IconTile icon="albums-outline" tone="beige" size={54} />
+                  {badge ? (
+                    <View style={styles.badgeWrap}>
+                      <StatusPill status={badge} small />
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={styles.name} numberOfLines={2}>
+                  {item.nom}
+                </Text>
+                <Text style={styles.sub} numberOfLines={1}>
+                  {[item.epaisseur, item.categorie]
+                    .filter(Boolean)
+                    .join(" • ")}
+                </Text>
+                <Text style={styles.priceLabel}>{t("catalogue.price")}</Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.price}>{formatXAF(item.prix_ttc)}</Text>
+                  {hasStock ? (
+                    <View
+                      style={[
+                        styles.dot,
+                        {
+                          backgroundColor: rupture
+                            ? COLORS.red
+                            : COLORS.green,
+                        },
+                      ]}
+                    />
+                  ) : null}
+                </View>
+                <Button
+                  label={t("catalogue.quote")}
+                  small
+                  onPress={() =>
+                    navigation.navigate("Devis", { produit_id: item.id })
+                  }
+                  style={styles.cta}
+                />
               </View>
-              <Text style={styles.name} numberOfLines={2}>
-                {item.nom}
-              </Text>
-              <Text style={styles.sub} numberOfLines={1}>
-                {[item.epaisseur, item.categorie].filter(Boolean).join(" • ")}
-              </Text>
-              <Text style={styles.priceLabel}>{t("catalogue.price")}</Text>
-              <Text style={styles.price}>{formatXAF(item.prix_ttc)}</Text>
-              <Button
-                label={t("catalogue.quote")}
-                small
-                onPress={() =>
-                  navigation.navigate("Devis", { produit_id: item.id })
-                }
-                style={styles.cta}
-              />
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
     </Screen>
@@ -187,8 +199,6 @@ export default function CatalogueScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   content: { paddingBottom: SPACING.xxl },
-  pillsRow: { marginBottom: 14 },
-  pill: { marginRight: 8 },
   loader: { marginTop: 40 },
   grid: {
     flexDirection: "row",
@@ -214,6 +224,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
+  },
+  badgeWrap: { position: "absolute", top: 8, left: 8 },
+  priceRow: { flexDirection: "row", alignItems: "center", marginTop: 1 },
+  dot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    marginLeft: 8,
   },
   name: { color: COLORS.ink, fontFamily: FONTS.bold, fontSize: 14, lineHeight: 19 },
   sub: {

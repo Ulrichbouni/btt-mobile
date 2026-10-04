@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,14 +12,16 @@ import {
   AppHeader,
   Button,
   Card,
+  CategoryTabs,
   EmptyState,
-  FilterPill,
   IconTile,
   Screen,
   SectionTitle,
+  StatusPill,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
+import { productStatus } from "../utils/produits";
 import { COLORS, FONTS, RADII, SPACING, formatXAF } from "../theme/theme";
 
 // Raccourcis par rôle : les clients ne voient jamais "Missions" (backend 403),
@@ -185,27 +186,14 @@ export default function HomeScreen({ navigation, user }) {
       />
 
       {categories.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.pillsRow}
-        >
-          <FilterPill
-            label={t("catalogue.all")}
-            active={categorie === "all"}
-            onPress={() => setCategorie("all")}
-            style={styles.pill}
-          />
-          {categories.map((c) => (
-            <FilterPill
-              key={c}
-              label={c}
-              active={categorie === c}
-              onPress={() => setCategorie(c)}
-              style={styles.pill}
-            />
-          ))}
-        </ScrollView>
+        <CategoryTabs
+          value={categorie}
+          onChange={setCategorie}
+          tabs={[
+            { key: "all", label: t("catalogue.all") },
+            ...categories.map((c) => ({ key: c, label: c })),
+          ]}
+        />
       )}
 
       {error ? (
@@ -221,34 +209,56 @@ export default function HomeScreen({ navigation, user }) {
           message={t("catalogue.emptyFilter")}
         />
       ) : (
-        visibles.map((item) => (
-          <Card key={item.id} style={styles.product} padding={14}>
-            <View style={styles.productRow}>
-              <IconTile icon="albums-outline" tone="beige" size={52} />
-              <View style={styles.productText}>
-                <Text style={styles.productName} numberOfLines={2}>
-                  {item.nom}
-                </Text>
-                <Text style={styles.productSub} numberOfLines={1}>
-                  {[item.epaisseur, item.categorie].filter(Boolean).join(" • ")}
-                </Text>
-                <Text style={styles.productPrice}>
-                  {formatXAF(item.prix_ttc)}
-                </Text>
+        visibles.map((item) => {
+          const { badge, rupture, hasStock } = productStatus(item);
+          return (
+            <Card key={item.id} style={styles.product} padding={14}>
+              <View style={styles.productRow}>
+                <IconTile icon="albums-outline" tone="beige" size={52} />
+                <View style={styles.productText}>
+                  <Text style={styles.productName} numberOfLines={2}>
+                    {item.nom}
+                  </Text>
+                  <Text style={styles.productSub} numberOfLines={1}>
+                    {[item.epaisseur, item.categorie]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </Text>
+                  <View style={styles.productPriceRow}>
+                    <Text style={styles.productPrice}>
+                      {formatXAF(item.prix_ttc)}
+                    </Text>
+                    {hasStock ? (
+                      <View
+                        style={[
+                          styles.dot,
+                          {
+                            backgroundColor: rupture
+                              ? COLORS.red
+                              : COLORS.green,
+                          },
+                        ]}
+                      />
+                    ) : null}
+                    {badge ? (
+                      <StatusPill status={badge} small style={styles.badgePill} />
+                    ) : null}
+                  </View>
+                </View>
               </View>
-            </View>
-            <Button
-              label={t("catalogue.quote")}
-              icon="document-text-outline"
-              small
-              variant="soft"
-              onPress={() =>
-                navigation.navigate("Devis", { produit_id: item.id })
-              }
-              style={styles.quoteBtn}
-            />
-          </Card>
-        ))
+              <Button
+                label={t("catalogue.quote")}
+                icon="document-text-outline"
+                small
+                variant="soft"
+                onPress={() =>
+                  navigation.navigate("Devis", { produit_id: item.id })
+                }
+                style={styles.quoteBtn}
+              />
+            </Card>
+          );
+        })
       )}
     </Screen>
   );
@@ -341,8 +351,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  pillsRow: { marginBottom: 14 },
-  pill: { marginRight: 8 },
   product: { marginBottom: 12 },
   productRow: { flexDirection: "row" },
   productText: { flex: 1, marginLeft: 12 },
@@ -353,11 +361,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
+  productPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+  },
   productPrice: {
     color: COLORS.primary,
     fontFamily: FONTS.bold,
     fontSize: 16,
-    marginTop: 6,
   },
+  dot: { width: 9, height: 9, borderRadius: 5, marginLeft: 8 },
+  badgePill: { marginLeft: 8 },
   quoteBtn: { marginTop: 12, alignSelf: "stretch" },
 });

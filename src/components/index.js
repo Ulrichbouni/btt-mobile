@@ -10,6 +10,7 @@ export { default as Field } from "./Field";
 export { default as Select } from "./Select";
 export { default as SearchBar } from "./SearchBar";
 export { default as FilterPill } from "./FilterPill";
+export { default as CategoryTabs } from "./CategoryTabs";
 export { default as StatusPill } from "./StatusPill";
 export { default as Chip } from "./Chip";
 export { default as IconTile } from "./IconTile";
