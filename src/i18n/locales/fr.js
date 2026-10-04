@@ -9,6 +9,8 @@ export default {
     choose: "Choisir une option",
     loading: "Chargement…",
     retry: "Réessayer",
+    show: "Afficher",
+    hide: "Masquer",
     error: "Erreur",
     success: "Succès",
     save: "Enregistrer",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
 
 import { AuthShell, Button, Field } from "../components";
@@ -18,8 +18,20 @@ export default function RegisterScreen({ navigation }) {
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmRef = useRef(null);
+  const codeRef = useRef(null);
+
   const update = (key) => (value) =>
     setForm((current) => ({ ...current, [key]: value }));
+
+  // À l'arrivée sur l'étape de vérification, le focus va au code reçu.
+  useEffect(() => {
+    if (step !== "verify") return undefined;
+    const timer = setTimeout(() => codeRef.current?.focus(), 250);
+    return () => clearTimeout(timer);
+  }, [step]);
 
   const requestEmailVerification = async () => {
     const email = form.email.trim().toLowerCase();
@@ -107,6 +119,11 @@ export default function RegisterScreen({ navigation }) {
             value={form.nom}
             onChangeText={update("nom")}
             autoCapitalize="words"
+            autoComplete="name"
+            textContentType="name"
+            returnKeyType="next"
+            onSubmitEditing={() => emailRef.current?.focus()}
+            editable={!loading}
           />
           <Field
             label={t("auth.email")}
@@ -114,6 +131,12 @@ export default function RegisterScreen({ navigation }) {
             value={form.email}
             keyboardType="email-address"
             onChangeText={update("email")}
+            autoComplete="email"
+            textContentType="emailAddress"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            inputRef={emailRef}
+            editable={!loading}
           />
           <Field
             label={t("auth.password")}
@@ -121,6 +144,12 @@ export default function RegisterScreen({ navigation }) {
             value={form.password}
             onChangeText={update("password")}
             password
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="next"
+            onSubmitEditing={() => confirmRef.current?.focus()}
+            inputRef={passwordRef}
+            editable={!loading}
           />
           <Field
             label={t("auth.confirmPassword")}
@@ -128,6 +157,12 @@ export default function RegisterScreen({ navigation }) {
             value={form.confirmPassword}
             onChangeText={update("confirmPassword")}
             password
+            autoComplete="new-password"
+            textContentType="newPassword"
+            returnKeyType="go"
+            onSubmitEditing={requestEmailVerification}
+            inputRef={confirmRef}
+            editable={!loading}
           />
           <Button
             label={t("auth.receiveCode")}
@@ -148,6 +183,12 @@ export default function RegisterScreen({ navigation }) {
             keyboardType="number-pad"
             maxLength={6}
             onChangeText={setVerificationCode}
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
+            returnKeyType="go"
+            onSubmitEditing={verifyAndRegister}
+            inputRef={codeRef}
+            editable={!loading}
           />
           <Button
             label={t("auth.verifyCode")}

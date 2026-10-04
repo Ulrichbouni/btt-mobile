@@ -9,9 +9,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import { COLORS, FONTS, RADII } from "../theme/theme";
+import { useI18n } from "../i18n";
 
-// Champ de formulaire beige à icône, avec label « encoché » optionnel
-// et bascule œil pour les mots de passe (comme les maquettes).
+// Champ de formulaire beige à icône, avec label « encoché » optionnel,
+// bascule œil pour les mots de passe, autofill (gestionnaires de mots de
+// passe) et enchaînement clavier entre les champs.
 export default function Field({
   label,
   icon,
@@ -22,12 +24,19 @@ export default function Field({
   multiline = false,
   keyboardType,
   autoCapitalize = "none",
+  autoComplete,
+  textContentType,
+  returnKeyType,
+  onSubmitEditing,
+  inputRef,
+  autoFocus = false,
   editable = true,
   error = false,
   maxLength,
   style,
   inputStyle,
 }) {
+  const { t } = useI18n();
   const [show, setShow] = useState(false);
 
   return (
@@ -45,6 +54,7 @@ export default function Field({
           <Ionicons name={icon} size={19} color={COLORS.muted} style={styles.icon} />
         ) : null}
         <TextInput
+          ref={inputRef}
           style={[styles.input, multiline && styles.inputMultiline, inputStyle]}
           value={value}
           onChangeText={onChangeText}
@@ -54,6 +64,11 @@ export default function Field({
           multiline={multiline}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
+          autoFocus={autoFocus}
           autoCorrect={false}
           editable={editable}
           maxLength={maxLength}
@@ -63,7 +78,7 @@ export default function Field({
             onPress={() => setShow((s) => !s)}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel={show ? "Masquer" : "Afficher"}
+            accessibilityLabel={show ? t("common.hide") : t("common.show")}
           >
             <Ionicons
               name={show ? "eye-off-outline" : "eye-outline"}

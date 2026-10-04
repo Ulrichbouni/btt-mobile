@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
 
 import { AuthShell, Button, Field } from "../components";
@@ -14,6 +14,17 @@ export default function LoginScreen({ navigation, onLogin }) {
   const [otp, setOtp] = useState("");
   const [otpRequired, setOtpRequired] = useState(false); // champ OTP visible uniquement si demandé
   const [loading, setLoading] = useState(false);
+
+  const passwordRef = useRef(null);
+  const otpRef = useRef(null);
+
+  // Le champ 2FA n'apparaît qu'après un OTP_REQUIRED : on y place le focus
+  // dès qu'il est monté (léger délai nécessaire au rendu sur Android).
+  useEffect(() => {
+    if (!otpRequired) return undefined;
+    const timer = setTimeout(() => otpRef.current?.focus(), 250);
+    return () => clearTimeout(timer);
+  }, [otpRequired]);
 
   const submit = async () => {
     if (!email || !password) {
@@ -60,6 +71,11 @@ export default function LoginScreen({ navigation, onLogin }) {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        autoComplete="email"
+        textContentType="emailAddress"
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        editable={!loading}
       />
       <Field
         label={t("auth.password")}
@@ -67,6 +83,14 @@ export default function LoginScreen({ navigation, onLogin }) {
         value={password}
         onChangeText={setPassword}
         password
+        autoComplete="current-password"
+        textContentType="password"
+        returnKeyType={otpRequired ? "next" : "go"}
+        onSubmitEditing={
+          otpRequired ? () => otpRef.current?.focus() : submit
+        }
+        inputRef={passwordRef}
+        editable={!loading}
       />
 
       {otpRequired && (
@@ -77,6 +101,12 @@ export default function LoginScreen({ navigation, onLogin }) {
           onChangeText={setOtp}
           keyboardType="number-pad"
           maxLength={6}
+          autoComplete="one-time-code"
+          textContentType="oneTimeCode"
+          returnKeyType="go"
+          onSubmitEditing={submit}
+          inputRef={otpRef}
+          editable={!loading}
         />
       )}
 

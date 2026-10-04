@@ -1,5 +1,12 @@
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { COLORS, FONTS, RADII, SPACING } from "../theme/theme";
@@ -25,11 +32,16 @@ export default function AuthShell({
 
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      {/* Le clavier ne doit jamais masquer le bouton de validation. */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.brandRow}>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{t("common.appName")}</Text>
@@ -57,14 +69,16 @@ export default function AuthShell({
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 
-        <View style={styles.body}>{children}</View>
-      </ScrollView>
+          <View style={styles.body}>{children}</View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.bg },
+  flex: { flex: 1 },
   content: {
     flexGrow: 1,
     paddingHorizontal: SPACING.xl,
