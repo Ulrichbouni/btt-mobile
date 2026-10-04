@@ -87,7 +87,6 @@ btt-mobile/
 │       ├── SaisieMesuresScreen.js  # POST /missions/:id/mesures
 │       ├── PaiementScreen.js
 │       ├── ProfileScreen.js
-│       └── SimpleScreen.js         # Écran générique (non branché)
 ```
 
 > ⚠️ Le code applicatif maintenu est ce dossier `btt-mobile/`. Le dossier
