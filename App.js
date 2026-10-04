@@ -280,21 +280,14 @@ function AppInner() {
               )}
             </Stack.Screen>
 
-            <Stack.Screen
-              name="Calculator"
-              component={CalculatorScreen}
-              options={{ headerShown: true, title: "🧮 Calculateur", ...stackHeader }}
-            />
+            {/* Calculateur et Notifications portent leur propre en-tête BTT-LUX. */}
+            <Stack.Screen name="Calculator" component={CalculatorScreen} />
             <Stack.Screen
               name="Devis"
               component={DevisScreen}
               options={{ headerShown: true, title: "📄 Demande de devis", ...stackHeader }}
             />
-            <Stack.Screen
-              name="Notifications"
-              component={NotificationsScreen}
-              options={{ headerShown: true, title: "🔔 Notifications", ...stackHeader }}
-            />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen
               name="ChantierDetail"
               options={{ headerShown: true, title: "Chantier", ...stackHeader }}

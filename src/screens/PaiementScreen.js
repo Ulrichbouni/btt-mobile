@@ -1,19 +1,32 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
-import api from "../services/api";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
-export default function PaiementScreen({ route }) {
+import {
+  AppHeader,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Screen,
+  SectionHeader,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
+import api from "../services/api";
+import { COLORS, FONTS, RADII, SPACING, formatXAF } from "../theme/theme";
+
+const METHODS = [
+  { key: "mtn", icon: "phone-portrait-outline", tone: "#F7D469", info: "mtnInfo" },
+  { key: "orange", icon: "ellipse", tone: "#F79A3C", info: "orangeInfo" },
+  { key: "card", icon: "card-outline", tone: COLORS.muted, info: null },
+];
+
+export default function PaiementScreen({ route, navigation }) {
+  const { t } = useI18n();
   const [montant, setMontant] = useState("");
   const [phone, setPhone] = useState("");
+  const [methode, setMethode] = useState("mtn");
   const [devisId, setDevisId] = useState(
     route?.params?.devisId ? String(route.params.devisId) : "",
   );
@@ -27,11 +40,9 @@ export default function PaiementScreen({ route }) {
     setHistoriqueError(null);
     try {
       const { data } = await api.get("/paiements/historique");
-      setHistorique(data);
+      setHistorique(Array.isArray(data) ? data : []);
     } catch (e) {
-      setHistoriqueError(
-        e.response?.data?.error || e.message || "Erreur de chargement",
-      );
+      setHistoriqueError(e.response?.data?.error || t("paiement.historyError"));
     }
   };
 
@@ -60,7 +71,7 @@ export default function PaiementScreen({ route }) {
       } catch (e) {
         if (cancelled) return;
         setDevis(null);
-        setDevisError(e.response?.data?.error || "Devis introuvable");
+        setDevisError(e.response?.data?.error || t("paiement.devisNotFound"));
         setMontant("");
       }
     })();
@@ -75,16 +86,21 @@ export default function PaiementScreen({ route }) {
     devis &&
     (devis.total_final === null || devis.total_final === undefined);
 
+  const choisirMethode = (key) => {
+    if (key === "card") {
+      Alert.alert(t("paiement.method"), t("paiement.cardUnavailable"));
+      return;
+    }
+    setMethode(key);
+  };
+
   const payer = async () => {
     if (!montant || montant <= 0)
-      return Alert.alert("Erreur", "Montant invalide");
+      return Alert.alert(t("common.error"), t("paiement.invalidAmount"));
     if (!phone || phone.length < 8)
-      return Alert.alert("Erreur", "Numéro invalide");
+      return Alert.alert(t("common.error"), t("paiement.invalidPhone"));
     if (devisNonValide)
-      return Alert.alert(
-        "Erreur",
-        "Ce devis n'a pas encore été validé par l'équipe, paiement impossible pour l'instant",
-      );
+      return Alert.alert(t("common.error"), t("paiement.devisNotValidated"));
     setLoading(true);
     try {
       const { data } = await api.post("/paiements/initier", {
@@ -94,146 +110,230 @@ export default function PaiementScreen({ route }) {
         devis_id: devisId ? parseInt(devisId) : null,
       });
       Alert.alert(
-        "Paiement initié",
-        `Référence: ${data.reference}\n\nUne demande Mobile Money a été envoyée à votre numéro.\nIndiquez votre code pour confirmer.`,
+        t("paiement.initiated"),
+        t("paiement.initiatedMessage", { ref: data.reference }),
       );
       fetchHistorique();
     } catch (err) {
       Alert.alert(
-        "Erreur",
-        err.response?.data?.error || "Impossible d'initier le paiement",
+        t("common.error"),
+        err.response?.data?.error || t("paiement.payFailed"),
       );
     }
     setLoading(false);
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>💳 Paiement</Text>
+  const methodInfo = METHODS.find((m) => m.key === methode);
 
-      <TextInput
-        style={styles.input}
-        placeholder="Devis ID (optionnel)"
-        keyboardType="numeric"
-        value={devisId}
-        onChangeText={setDevisId}
+  return (
+    <Screen contentStyle={styles.content}>
+      <AppHeader
+        showBell
+        onBell={() => navigation?.navigate("Notifications")}
       />
-      {devisError ? <Text style={styles.error}>⚠️ {devisError}</Text> : null}
-      {devisNonValide ? (
-        <Text style={styles.warning}>
-          ⏳ Ce devis n'a pas encore de prix validé par l'équipe.
-        </Text>
+      <SectionHeader
+        icon="card"
+        tone="beige"
+        title={t("paiement.title")}
+        subtitle={t("paiement.subtitle")}
+      />
+
+      <Card>
+        <Field
+          label={t("paiement.devisId")}
+          icon="document-text-outline"
+          value={devisId}
+          onChangeText={setDevisId}
+          keyboardType="numeric"
+        />
+        {devisError ? <Text style={styles.error}>⚠️ {devisError}</Text> : null}
+        {devisNonValide ? (
+          <Text style={styles.warning}>⏳ {t("paiement.devisNotValidated")}</Text>
+        ) : null}
+
+        <Field
+          label={t("paiement.amount")}
+          icon="cash-outline"
+          value={montant}
+          onChangeText={montantLocked ? undefined : setMontant}
+          editable={!montantLocked}
+          keyboardType="numeric"
+        />
+        {montantLocked ? (
+          <Text style={styles.hint}>
+            {t("paiement.amountLocked", { id: devisId })}
+          </Text>
+        ) : null}
+
+        <Field
+          label={t("paiement.phone")}
+          icon="call-outline"
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+          style={styles.lastField}
+        />
+      </Card>
+
+      <Text style={styles.sectionLabel}>{t("paiement.method")}</Text>
+      <View style={styles.methods}>
+        {METHODS.map((m) => {
+          const active = m.key === methode;
+          return (
+            <TouchableOpacity
+              key={m.key}
+              style={[styles.method, active && styles.methodActive]}
+              onPress={() => choisirMethode(m.key)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+            >
+              <Ionicons
+                name={m.icon}
+                size={22}
+                color={active ? COLORS.primaryDark : COLORS.muted}
+              />
+              <Text
+                style={[styles.methodLabel, active && styles.methodLabelActive]}
+                numberOfLines={1}
+              >
+                {t(`paiement.${m.key}`)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {methodInfo?.info ? (
+        <View style={styles.info}>
+          <Ionicons name="information-circle-outline" size={18} color="#9A5A24" />
+          <Text style={styles.infoText}>{t(`paiement.${methodInfo.info}`)}</Text>
+        </View>
       ) : null}
 
-      <TextInput
-        style={[styles.input, montantLocked && styles.inputLocked]}
-        placeholder="Montant (FCFA)"
-        keyboardType="numeric"
-        value={montant}
-        onChangeText={montantLocked ? undefined : setMontant}
-        editable={!montantLocked}
-      />
-      {montantLocked && (
-        <Text style={styles.hint}>
-          Montant fixé par le devis #{devisId}, non modifiable.
-        </Text>
-      )}
-
-      <TextInput
-        style={styles.input}
-        placeholder="Téléphone Mobile Money"
-        keyboardType="phone-pad"
-        value={phone}
-        onChangeText={setPhone}
-      />
-
-      <TouchableOpacity
-        style={styles.button}
+      <Button
+        label={t("paiement.cta")}
+        icon="lock-closed-outline"
         onPress={payer}
+        loading={loading}
         disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Payer via Campay</Text>
-        )}
-      </TouchableOpacity>
+        style={styles.cta}
+      />
 
-      <Text style={styles.sectionTitle}>Historique</Text>
+      <Text style={styles.sectionLabel}>{t("paiement.history")}</Text>
       {historiqueError ? (
         <Text style={styles.error}>⚠️ {historiqueError}</Text>
       ) : null}
-      {!historiqueError && historique.length === 0 && (
-        <Text style={styles.empty}>Aucun paiement</Text>
+      {!historiqueError && historique.length === 0 ? (
+        <EmptyState
+          icon="receipt-outline"
+          title={t("paiement.history")}
+          message={t("paiement.emptyHistory")}
+        />
+      ) : (
+        historique.map((p) => (
+          <Card key={p.id} style={styles.historyCard} padding={14}>
+            <View style={styles.historyRow}>
+              <View style={styles.historyText}>
+                <Text style={styles.historyAmount}>
+                  {formatXAF(p.montant)}
+                </Text>
+                <Text style={styles.historyRef}>
+                  {t("paiement.ref", { ref: p.reference })}
+                </Text>
+              </View>
+              <StatusPill status={p.statut} small />
+            </View>
+          </Card>
+        ))
       )}
-      {historique.map((p) => (
-        <View key={p.id} style={styles.item}>
-          <Text style={styles.itemAmount}>
-            {p.montant?.toLocaleString()} FCFA
-          </Text>
-          <Text style={styles.itemSub}>Réf: {p.reference}</Text>
-          <Text style={styles.itemStatut}>{p.statut}</Text>
-        </View>
-      ))}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#92400e",
-    marginBottom: 16,
-  },
+  content: { paddingBottom: SPACING.xxl },
+  lastField: { marginBottom: 0 },
   error: {
-    color: "#b91c1c",
-    backgroundColor: "#fee2e2",
-    padding: 10,
-    borderRadius: 8,
+    color: COLORS.red,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
     marginBottom: 12,
   },
   warning: {
-    color: "#92400e",
-    backgroundColor: "#fef3c7",
-    padding: 10,
-    borderRadius: 8,
+    color: "#9A5A24",
+    fontFamily: FONTS.regular,
+    fontSize: 13,
     marginBottom: 12,
   },
-  hint: { color: "#6b7280", fontSize: 12, marginTop: -8, marginBottom: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 16,
+  hint: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    marginTop: -8,
+    marginBottom: 14,
+  },
+  sectionLabel: {
+    color: COLORS.ink,
+    fontFamily: FONTS.bold,
+    fontSize: 17,
+    marginTop: 20,
     marginBottom: 12,
   },
-  inputLocked: { backgroundColor: "#f3f4f6", color: "#6b7280" },
-  button: {
-    backgroundColor: "#16a34a",
-    padding: 16,
-    borderRadius: 8,
+  methods: { flexDirection: "row" },
+  method: {
+    flex: 1,
     alignItems: "center",
-    marginBottom: 24,
+    justifyContent: "center",
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    paddingVertical: 16,
+    marginRight: 8,
   },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#374151",
-    marginBottom: 8,
+  methodActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primarySoft,
   },
-  empty: { color: "#6b7280", textAlign: "center", padding: 12 },
-  item: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+  methodLabel: {
+    color: COLORS.muted,
+    fontFamily: FONTS.semiBold,
+    fontSize: 12,
+    marginTop: 8,
   },
-  itemAmount: { fontSize: 16, fontWeight: "600", color: "#111827" },
-  itemSub: { fontSize: 12, color: "#6b7280", marginTop: 2 },
-  itemStatut: { fontSize: 12, color: "#92400e", marginTop: 2 },
+  methodLabelActive: { color: COLORS.primaryDark },
+  info: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: COLORS.yellowSoft,
+    borderRadius: RADII.md,
+    borderWidth: 1,
+    borderColor: "#F0DFAE",
+    padding: 14,
+    marginTop: 14,
+  },
+  infoText: {
+    flex: 1,
+    color: "#8A5A24",
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    lineHeight: 20,
+    marginLeft: 10,
+  },
+  cta: { marginTop: 20 },
+  historyCard: { marginBottom: 10 },
+  historyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  historyText: { flex: 1, marginRight: 10 },
+  historyAmount: { color: COLORS.ink, fontFamily: FONTS.bold, fontSize: 16 },
+  historyRef: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    marginTop: 2,
+  },
 });

@@ -1,28 +1,32 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
+import {
+  AppHeader,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  FilterPill,
+  Screen,
+  SectionHeader,
+} from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
 import { toNumber } from "../utils/numbers";
+import { COLORS, FONTS, SPACING, formatXAF } from "../theme/theme";
 
 const TYPES = [
-  { value: "residentiel", label: "Résidentiel" },
-  { value: "commercial", label: "Commercial" },
-  { value: "industriel", label: "Industriel" },
+  { value: "residentiel", key: "residential" },
+  { value: "commercial", key: "commercial" },
+  { value: "industriel", key: "industrial" },
 ];
 
 // "" => laisser le backend suggérer l'épaisseur selon le type de bâtiment
 const EPAISSEURS = ["", "8mm", "10mm", "12mm", "14mm"];
 
 export default function CalculatorScreen({ navigation, route }) {
+  const { t } = useI18n();
   const [produits, setProduits] = useState([]);
   const [produitId, setProduitId] = useState(null);
   const [typeBatiment, setTypeBatiment] = useState("residentiel");
@@ -49,7 +53,7 @@ export default function CalculatorScreen({ navigation, route }) {
         }
       } catch (e) {
         if (active) {
-          setError(e.response?.data?.error || "Catalogue indisponible");
+          setError(e.response?.data?.error || t("calculator.catalogueUnavailable"));
         }
       }
     })();
@@ -84,18 +88,15 @@ export default function CalculatorScreen({ navigation, route }) {
     const etage = toNumber(form.etage);
 
     if (!longueur || longueur <= 0 || !largeur || largeur <= 0) {
-      Alert.alert(
-        "Erreur",
-        "Longueur et largeur doivent être des nombres strictement positifs",
-      );
+      Alert.alert(t("common.error"), t("calculator.positiveDims"));
       return;
     }
     if (!produitId) {
-      Alert.alert("Erreur", "Sélectionnez un produit");
+      Alert.alert(t("common.error"), t("calculator.selectProduct"));
       return;
     }
     if (etage !== null && (etage < 0 || !Number.isInteger(etage))) {
-      Alert.alert("Erreur", "L'étage doit être un entier positif ou zéro");
+      Alert.alert(t("common.error"), t("calculator.floorInteger"));
       return;
     }
 
@@ -117,8 +118,8 @@ export default function CalculatorScreen({ navigation, route }) {
       const msg =
         details?.map((d) => `${d.champ}: ${d.message}`).join("\n") ||
         e.response?.data?.error ||
-        "Estimation impossible";
-      Alert.alert("Erreur", msg);
+        t("calculator.estimateFailed");
+      Alert.alert(t("common.error"), msg);
     } finally {
       setLoading(false);
     }
@@ -133,235 +134,227 @@ export default function CalculatorScreen({ navigation, route }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>🧮 Calculateur de besoins</Text>
+    <Screen contentStyle={styles.content}>
+      <AppHeader
+        showBell
+        onBell={() => navigation?.navigate("Notifications")}
+      />
+      <SectionHeader
+        icon="calculator"
+        tone="beige"
+        title={t("calculator.title")}
+        subtitle={t("calculator.subtitle")}
+      />
 
-      {error ? <Text style={styles.error}>⚠️ {error}</Text> : null}
+      {error ? (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title={t("common.error")}
+          message={error}
+        />
+      ) : null}
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Produit</Text>
-        <View style={styles.chipRow}>
-          {produits.map((p) => (
-            <TouchableOpacity
-              key={p.id}
-              style={[styles.chip, produitId === p.id && styles.chipActive]}
-              onPress={() => setProduitId(p.id)}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  produitId === p.id && styles.chipTextActive,
-                ]}
-              >
-                {p.nom} ({p.epaisseur})
-              </Text>
-            </TouchableOpacity>
-          ))}
-          {produits.length === 0 && (
-            <Text style={styles.hint}>Aucun produit au catalogue</Text>
-          )}
+      <Card style={styles.card}>
+        <Text style={styles.label}>{t("calculator.product")}</Text>
+        {produits.length === 0 ? (
+          <Text style={styles.hint}>{t("calculator.noProduct")}</Text>
+        ) : (
+          <View style={styles.pills}>
+            {produits.map((p) => (
+              <FilterPill
+                key={p.id}
+                label={`${p.nom}${p.epaisseur ? ` (${p.epaisseur})` : ""}`}
+                active={produitId === p.id}
+                onPress={() => setProduitId(p.id)}
+                style={styles.pill}
+              />
+            ))}
+          </View>
+        )}
+
+        <View style={styles.dimsRow}>
+          <Field
+            label={t("calculator.length")}
+            value={form.longueur}
+            onChangeText={(v) => setForm({ ...form, longueur: v })}
+            keyboardType="decimal-pad"
+            placeholder="12"
+            style={styles.dim}
+          />
+          <Field
+            label={t("calculator.width")}
+            value={form.largeur}
+            onChangeText={(v) => setForm({ ...form, largeur: v })}
+            keyboardType="decimal-pad"
+            placeholder="8"
+            style={styles.dim}
+          />
         </View>
 
-        <Text style={styles.label}>Longueur (m)</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="decimal-pad"
-          value={form.longueur}
-          onChangeText={(v) => setForm({ ...form, longueur: v })}
-          placeholder="Ex: 12"
-        />
-
-        <Text style={styles.label}>Largeur (m)</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="decimal-pad"
-          value={form.largeur}
-          onChangeText={(v) => setForm({ ...form, largeur: v })}
-          placeholder="Ex: 8"
-        />
-
-        <Text style={styles.label}>Type de bâtiment</Text>
-        <View style={styles.chipRow}>
-          {TYPES.map((t) => (
-            <TouchableOpacity
-              key={t.value}
-              style={[
-                styles.chip,
-                typeBatiment === t.value && styles.chipActive,
-              ]}
-              onPress={() => setTypeBatiment(t.value)}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  typeBatiment === t.value && styles.chipTextActive,
-                ]}
-              >
-                {t.label}
-              </Text>
-            </TouchableOpacity>
+        <Text style={styles.label}>{t("calculator.buildingType")}</Text>
+        <View style={styles.pills}>
+          {TYPES.map((type) => (
+            <FilterPill
+              key={type.value}
+              label={t(`calculator.${type.key}`)}
+              active={typeBatiment === type.value}
+              onPress={() => setTypeBatiment(type.value)}
+              style={styles.pill}
+            />
           ))}
         </View>
 
-        <Text style={styles.label}>Étage (optionnel)</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="number-pad"
+        <Field
+          label={t("calculator.floor")}
           value={form.etage}
           onChangeText={(v) => setForm({ ...form, etage: v })}
+          keyboardType="number-pad"
           placeholder="0"
+          style={styles.fieldGap}
         />
 
-        <Text style={styles.label}>Épaisseur (optionnel)</Text>
-        <View style={styles.chipRow}>
+        <Text style={styles.label}>{t("calculator.thickness")}</Text>
+        <View style={[styles.pills, styles.pillsLast]}>
           {EPAISSEURS.map((e) => (
-            <TouchableOpacity
+            <FilterPill
               key={e || "auto"}
-              style={[styles.chip, form.epaisseur === e && styles.chipActive]}
+              label={e || t("calculator.auto")}
+              active={form.epaisseur === e}
               onPress={() => setForm({ ...form, epaisseur: e })}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  form.epaisseur === e && styles.chipTextActive,
-                ]}
-              >
-                {e || "Auto"}
-              </Text>
-            </TouchableOpacity>
+              style={styles.pill}
+            />
           ))}
         </View>
 
-        <TouchableOpacity
-          style={[styles.primary, loading && styles.disabled]}
+        <Button
+          label={t("calculator.estimate")}
+          icon="calculator-outline"
           onPress={estimer}
+          loading={loading}
           disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.white}>Estimer mes besoins</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+        />
+      </Card>
 
       {result && (
-        <View style={styles.resultCard}>
-          <Text style={styles.resultTitle}>Résultat</Text>
-          <Text style={styles.resultLine}>Surface : {result.surface} m²</Text>
-          <Text style={styles.resultLine}>
-            Épaisseur : {result.epaisseur_selected} (suggérée :{" "}
-            {result.epaisseur_suggested})
-          </Text>
-          <Text style={styles.resultLine}>
-            Panneaux : {result.nb_panneaux} (marge 10%)
-          </Text>
-          <Text style={styles.resultLine}>Ossature : {result.ossature_ml} ml</Text>
-          <Text style={styles.resultLine}>Vis : {result.nb_vis}</Text>
-          <Text style={styles.resultLine}>
-            Poids total : {result.poids_total} kg
-          </Text>
-          <Text style={styles.resultLine}>
-            Équivalent conteneur : {result.equivalent_conteneur}
-          </Text>
-          <Text style={styles.cost}>
-            Coût estimé : {result.cout_total?.toLocaleString()} FCFA
-          </Text>
-          <Text style={styles.mention}>* {result.mention}</Text>
+        <Card style={styles.resultCard}>
+          <Text style={styles.resultTitle}>{t("calculator.results")}</Text>
+          <Row
+            label={t("calculator.surface")}
+            value={`${result.surface} m²`}
+          />
+          <Row
+            label={t("calculator.thicknessLine", {
+              selected: result.epaisseur_selected,
+              suggested: result.epaisseur_suggested,
+            })}
+          />
+          <Row
+            label={t("calculator.panels", { n: result.nb_panneaux })}
+          />
+          <Row label={t("calculator.framing", { n: result.ossature_ml })} />
+          <Row label={t("calculator.screws", { n: result.nb_vis })} />
+          <Row label={t("calculator.weight", { n: result.poids_total })} />
+          <Row
+            label={t("calculator.container", { n: result.equivalent_conteneur })}
+          />
+          <View style={styles.costRow}>
+            <Text style={styles.costLabel}>{t("calculator.cost")}</Text>
+            <Text style={styles.cost}>{formatXAF(result.cout_total)}</Text>
+          </View>
+          {result.mention ? (
+            <Text style={styles.mention}>* {result.mention}</Text>
+          ) : null}
 
-          <TouchableOpacity style={styles.secondary} onPress={preparerDevis}>
-            <Text style={styles.white}>Préparer une demande de devis</Text>
-          </TouchableOpacity>
-        </View>
+          <Button
+            label={t("calculator.prepareQuote")}
+            icon="document-text-outline"
+            variant="green"
+            onPress={preparerDevis}
+            style={styles.quoteBtn}
+          />
+        </Card>
       )}
-    </ScrollView>
+    </Screen>
+  );
+}
+
+function Row({ label, value }) {
+  return (
+    <View style={styles.resultRow}>
+      <Text style={styles.resultLabel}>{label}</Text>
+      {value ? <Text style={styles.resultValue}>{value}</Text> : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#92400e",
-    marginBottom: 16,
-  },
-  error: {
-    color: "#b91c1c",
-    backgroundColor: "#fee2e2",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-  },
+  content: { paddingBottom: SPACING.xxl },
+  card: { marginTop: 4 },
   label: {
+    color: COLORS.ink,
+    fontFamily: FONTS.semiBold,
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  hint: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
     fontSize: 13,
-    fontWeight: "600",
-    color: "#374151",
-    marginTop: 8,
-    marginBottom: 4,
+    marginBottom: 10,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: "#fff",
-  },
-  hint: { fontSize: 12, color: "#6b7280", marginBottom: 8 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
-  chip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: "#f3f4f6",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  chipActive: { backgroundColor: "#b45309", borderColor: "#b45309" },
-  chipText: { fontSize: 12, color: "#374151", fontWeight: "600" },
-  chipTextActive: { color: "#fff" },
-  primary: {
-    backgroundColor: "#b45309",
-    padding: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 12,
-  },
-  secondary: {
-    backgroundColor: "#0f766e",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 12,
-  },
-  disabled: { opacity: 0.6 },
-  white: { color: "#fff", fontWeight: "700" },
-  resultCard: {
-    backgroundColor: "#eff6ff",
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#bfdbfe",
-  },
+  pills: { flexDirection: "row", flexWrap: "wrap", marginBottom: 6 },
+  pillsLast: { marginBottom: 16 },
+  pill: { marginRight: 8, marginBottom: 8 },
+  dimsRow: { flexDirection: "row", marginTop: 8 },
+  dim: { flex: 1, marginRight: 8, marginBottom: 12 },
+  fieldGap: { marginTop: 8 },
+  resultCard: { marginTop: 14 },
   resultTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#1e3a8a",
+    color: COLORS.ink,
+    fontFamily: FONTS.bold,
+    fontSize: 17,
+    marginBottom: 10,
+  },
+  resultRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
     marginBottom: 6,
   },
-  resultLine: { fontSize: 14, color: "#374151", marginBottom: 2 },
-  cost: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#92400e",
+  resultLabel: {
+    flex: 1,
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    marginRight: 10,
+  },
+  resultValue: {
+    color: COLORS.ink,
+    fontFamily: FONTS.semiBold,
+    fontSize: 13,
+    textAlign: "right",
+  },
+  costRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.greenSoft,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 10,
+  },
+  costLabel: {
+    color: COLORS.greenDark,
+    fontFamily: FONTS.semiBold,
+    fontSize: 14,
+  },
+  cost: { color: COLORS.greenDark, fontFamily: FONTS.bold, fontSize: 17 },
+  mention: {
+    color: COLORS.mutedLight,
+    fontFamily: FONTS.regular,
+    fontSize: 11,
     marginTop: 8,
   },
-  mention: { fontSize: 11, color: "#6b7280", marginTop: 6 },
+  quoteBtn: { marginTop: 16 },
 });
