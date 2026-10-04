@@ -1,21 +1,23 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-  Image,
-} from "react-native";
+import { Alert, Image, StyleSheet, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
+import {
+  AppHeader,
+  Button,
+  Card,
+  Field,
+  Screen,
+  SectionHeader,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
 import { toNumber } from "../utils/numbers";
+import { COLORS, FONTS, RADII, SPACING } from "../theme/theme";
 
 export default function SaisieMesuresScreen({ route, navigation }) {
+  const { t } = useI18n();
   const missionId = route?.params?.missionId;
   const mission = route?.params?.mission;
 
@@ -43,10 +45,7 @@ export default function SaisieMesuresScreen({ route, navigation }) {
   const addPhotos = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
-        "Permission refusée",
-        "Autorisez l'accès à la galerie pour joindre des photos.",
-      );
+      Alert.alert(t("common.error"), t("mesures.permission"));
       return;
     }
 
@@ -76,7 +75,10 @@ export default function SaisieMesuresScreen({ route, navigation }) {
       }
       setPhotoUrls((prev) => [...prev, ...urls]);
     } catch (e) {
-      Alert.alert("Erreur", e.response?.data?.error || "Upload impossible");
+      Alert.alert(
+        t("common.error"),
+        e.response?.data?.error || t("mesures.uploadError"),
+      );
     } finally {
       setUploading(false);
     }
@@ -84,22 +86,19 @@ export default function SaisieMesuresScreen({ route, navigation }) {
 
   const submit = async () => {
     if (!missionId) {
-      Alert.alert("Erreur", "Mission inconnue");
+      Alert.alert(t("common.error"), t("mesures.missionUnknown"));
       return;
     }
     if (!longueur || longueur <= 0) {
-      Alert.alert("Erreur", "Longueur des murs invalide");
+      Alert.alert(t("common.error"), t("mesures.invalidLength"));
       return;
     }
     if (!hauteur || hauteur <= 0) {
-      Alert.alert("Erreur", "Hauteur sous plafond invalide");
+      Alert.alert(t("common.error"), t("mesures.invalidHeight"));
       return;
     }
     if (!surfaceReelle || surfaceReelle <= 0) {
-      Alert.alert(
-        "Erreur",
-        "La surface réelle calculée est nulle ou négative. Vérifiez les ouvertures.",
-      );
+      Alert.alert(t("common.error"), t("mesures.invalidSurface"));
       return;
     }
 
@@ -121,8 +120,8 @@ export default function SaisieMesuresScreen({ route, navigation }) {
     try {
       await api.post(`/missions/${missionId}/mesures`, payload);
       Alert.alert(
-        "Succès",
-        `Mesures envoyées. Mission #${missionId} passée en "en_cours".`,
+        t("mesures.sentTitle"),
+        t("mesures.sentMessage", { id: missionId }),
         [{ text: "OK", onPress: () => navigation?.goBack?.() }],
       );
     } catch (e) {
@@ -130,158 +129,173 @@ export default function SaisieMesuresScreen({ route, navigation }) {
       const msg =
         details?.map((d) => `${d.champ}: ${d.message}`).join("\n") ||
         e.response?.data?.error ||
-        "Envoi impossible";
-      Alert.alert("Erreur", msg);
+        t("mesures.sendFailed");
+      Alert.alert(t("common.error"), msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>📏 Saisie des mesures</Text>
-      {mission ? (
-        <Text style={styles.meta}>
-          Mission #{missionId} · Devis #{mission.devis_id} ·{" "}
-          {mission.ville || "—"}
-        </Text>
-      ) : (
-        <Text style={styles.meta}>Mission #{missionId}</Text>
-      )}
+    <Screen contentStyle={styles.content}>
+      <AppHeader
+        showBell
+        onBell={() => navigation?.navigate("Notifications")}
+      />
+      <SectionHeader
+        icon="resize"
+        tone="green"
+        title={t("mesures.title")}
+        subtitle={
+          mission
+            ? t("mesures.missionMeta", {
+                id: missionId,
+                devis: mission.devis_id,
+                ville: mission.ville || "—",
+              })
+            : t("mesures.missionOnly", { id: missionId })
+        }
+        langBadge
+      />
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Longueur totale des murs (m)</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="decimal-pad"
+      <Card>
+        <Field
+          label={t("mesures.wallsLength")}
+          icon="resize-outline"
           value={form.longueur_murs}
           onChangeText={(v) => setForm({ ...form, longueur_murs: v })}
-          placeholder="Ex: 24.5"
-        />
-
-        <Text style={styles.label}>Hauteur sous plafond (m)</Text>
-        <TextInput
-          style={styles.input}
           keyboardType="decimal-pad"
+          placeholder="24.5"
+        />
+        <Field
+          label={t("mesures.ceiling")}
+          icon="swap-vertical-outline"
           value={form.hauteur_sous_plafond}
           onChangeText={(v) => setForm({ ...form, hauteur_sous_plafond: v })}
-          placeholder="Ex: 3"
-        />
-
-        <Text style={styles.label}>Surface des ouvertures (m²) — optionnel</Text>
-        <TextInput
-          style={styles.input}
           keyboardType="decimal-pad"
+          placeholder="3"
+        />
+        <Field
+          label={t("mesures.openings")}
+          icon="browsers-outline"
           value={form.surface_ouverte}
           onChangeText={(v) => setForm({ ...form, surface_ouverte: v })}
-          placeholder="Fenêtres et portes"
-        />
-
-        <Text style={styles.label}>Périmètre (m) — optionnel</Text>
-        <TextInput
-          style={styles.input}
           keyboardType="decimal-pad"
+          placeholder="0"
+        />
+        <Field
+          label={t("mesures.perimeter")}
+          icon="analytics-outline"
           value={form.perimetre}
           onChangeText={(v) => setForm({ ...form, perimetre: v })}
-          placeholder="Ex: 40"
+          keyboardType="decimal-pad"
+          placeholder="40"
+          style={styles.lastField}
         />
+      </Card>
+
+      <View style={styles.preview}>
+        <View style={styles.previewRow}>
+          <Text style={styles.previewLabel}>
+            {t("mesures.surfaceReal")} (m²)
+          </Text>
+          <Text style={styles.previewValue}>
+            {surfaceReelle ? `${surfaceReelle.toFixed(2)} m²` : "0.00 m²"}
+          </Text>
+        </View>
+        <Text style={styles.previewSub}>
+          {t("mesures.panels")} : {nbPanneaux ?? "—"} · {t("mesures.panelsBase")}
+        </Text>
       </View>
 
-      <View style={styles.previewCard}>
-        <Text style={styles.previewTitle}>Aperçu du calcul</Text>
-        <Text style={styles.previewLine}>
-          Surface réelle :{" "}
-          {surfaceReelle ? `${surfaceReelle.toFixed(2)} m²` : "—"}
-        </Text>
-        <Text style={styles.previewLine}>
-          Panneaux estimés : {nbPanneaux ?? "—"} (base 1,2 m²/panneau)
-        </Text>
-      </View>
-
-      <Text style={styles.label}>Photos du métré (optionnel)</Text>
-      <View style={styles.photoGrid}>
-        {photoUrls.map((url, i) => (
-          <Image key={i} source={{ uri: url }} style={styles.photo} />
-        ))}
-      </View>
-      <TouchableOpacity
-        style={[styles.photoBtn, uploading && styles.disabled]}
+      <Text style={styles.label}>{t("mesures.photos")}</Text>
+      {photoUrls.length > 0 ? (
+        <View style={styles.photoGrid}>
+          {photoUrls.map((url, i) => (
+            <Image key={url || i} source={{ uri: url }} style={styles.photo} />
+          ))}
+        </View>
+      ) : null}
+      <Button
+        label={
+          uploading ? t("devis.uploading") : t("mesures.addPhotos")
+        }
+        icon="camera-outline"
+        variant="soft"
+        small
         onPress={addPhotos}
         disabled={uploading}
-      >
-        {uploading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.white}>+ Ajouter des photos</Text>
-        )}
-      </TouchableOpacity>
+        loading={uploading}
+        style={styles.photoBtn}
+      />
 
-      <TouchableOpacity
-        style={[styles.primary, loading && styles.disabled]}
+      <Button
+        label={t("mesures.submit")}
+        icon="save-outline"
+        variant="green"
         onPress={submit}
+        loading={loading}
         disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.white}>Envoyer les mesures</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+        style={styles.submitBtn}
+      />
+
+      <StatusPill
+        tone="neutral"
+        label={t("mesures.subtitle")}
+        small
+        style={styles.tag}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  title: { fontSize: 24, fontWeight: "800", color: "#92400e", marginBottom: 4 },
-  meta: { fontSize: 13, color: "#6b7280", marginBottom: 12 },
-  card: { backgroundColor: "#fff", borderRadius: 12, padding: 14 },
+  content: { paddingBottom: SPACING.xxl },
+  lastField: { marginBottom: 0 },
+  preview: {
+    backgroundColor: COLORS.greenSoft,
+    borderRadius: RADII.lg,
+    padding: 16,
+    marginTop: 14,
+  },
+  previewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  previewLabel: {
+    color: COLORS.greenDark,
+    fontFamily: FONTS.semiBold,
+    fontSize: 14,
+  },
+  previewValue: {
+    color: COLORS.greenDark,
+    fontFamily: FONTS.bold,
+    fontSize: 20,
+  },
+  previewSub: {
+    color: COLORS.greenDark,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    marginTop: 6,
+  },
   label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#374151",
-    marginTop: 8,
-    marginBottom: 4,
+    color: COLORS.ink,
+    fontFamily: FONTS.semiBold,
+    fontSize: 14,
+    marginTop: 20,
+    marginBottom: 10,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: "#fff",
+  photoGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 10 },
+  photo: {
+    width: 84,
+    height: 84,
+    borderRadius: RADII.sm,
+    backgroundColor: "#EEE7DB",
+    marginRight: 8,
+    marginBottom: 8,
   },
-  previewCard: {
-    backgroundColor: "#eff6ff",
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: "#bfdbfe",
-  },
-  previewTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#1e3a8a",
-    marginBottom: 6,
-  },
-  previewLine: { fontSize: 14, color: "#374151", marginBottom: 2 },
-  photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  photo: { width: 84, height: 84, borderRadius: 8, backgroundColor: "#eee" },
-  photoBtn: {
-    backgroundColor: "#0ea5e9",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  primary: {
-    backgroundColor: "#0f766e",
-    padding: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  disabled: { opacity: 0.6 },
-  white: { color: "#fff", fontWeight: "700" },
+  photoBtn: { alignSelf: "flex-start" },
+  submitBtn: { marginTop: 18 },
+  tag: { marginTop: 16, alignSelf: "center" },
 });

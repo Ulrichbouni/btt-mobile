@@ -1,22 +1,28 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
   ActivityIndicator,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import api from "../services/api";
+import { Ionicons } from "@expo/vector-icons";
 
-const STATUT_COLORS = {
-  assignee: "#b45309",
-  en_cours: "#2563eb",
-  terminee: "#16a34a",
-};
+import {
+  AppHeader,
+  Button,
+  Card,
+  EmptyState,
+  Screen,
+  SectionHeader,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
+import api from "../services/api";
+import { COLORS, FONTS, RADII, SPACING } from "../theme/theme";
 
 export default function MissionsScreen({ navigation, user }) {
+  const { t } = useI18n();
   const isAdmin = user?.role === "admin";
 
   const [missions, setMissions] = useState([]);
@@ -40,13 +46,9 @@ export default function MissionsScreen({ navigation, user }) {
       const { data } = await api.get(endpoint);
       setMissions(Array.isArray(data) ? data : []);
     } catch (e) {
-      setError(
-        e.response?.data?.error ||
-          e.message ||
-          "Erreur de chargement des missions",
-      );
+      setError(e.response?.data?.error || e.message || t("missions.loadError"));
     }
-  }, [isAdmin]);
+  }, [isAdmin, t]);
 
   useEffect(() => {
     let active = true;
@@ -113,7 +115,7 @@ export default function MissionsScreen({ navigation, user }) {
       );
       setChantierId(cid);
     } catch (e) {
-      setError(e.response?.data?.error || "Détail de la mission indisponible");
+      setError(e.response?.data?.error || t("missions.detailError"));
       setOpenId(null);
     } finally {
       setDetailLoading(false);
@@ -127,208 +129,250 @@ export default function MissionsScreen({ navigation, user }) {
     });
   };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#b45309" />
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        📋 {isAdmin ? "Missions" : "Mes Missions"}
-      </Text>
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {error ? <Text style={styles.error}>⚠️ {error}</Text> : null}
-        {!error && missions.length === 0 && (
-          <Text style={styles.empty}>
-            {isAdmin ? "Aucune mission créée" : "Aucune mission assignée"}
-          </Text>
-        )}
+    <Screen
+      contentStyle={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <AppHeader
+        showBell
+        onBell={() => navigation.navigate("Notifications")}
+        name={user?.nom}
+      />
+      <SectionHeader
+        icon="briefcase"
+        tone="green"
+        title={t("missions.title")}
+        subtitle={t("missions.subtitle")}
+        langBadge
+      />
 
-        {missions.map((m) => {
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color={COLORS.green}
+          style={styles.loader}
+        />
+      ) : error && missions.length === 0 ? (
+        <>
+          <EmptyState
+            icon="cloud-offline-outline"
+            title={t("common.error")}
+            message={error}
+          />
+          <Button
+            label={t("common.retry")}
+            variant="outline"
+            icon="refresh"
+            onPress={load}
+          />
+        </>
+      ) : missions.length === 0 ? (
+        <EmptyState
+          icon="briefcase-outline"
+          title={t("missions.title")}
+          message={isAdmin ? t("missions.emptyAdmin") : t("missions.emptyTech")}
+        />
+      ) : (
+        missions.map((m) => {
           const isOpen = openId === m.id;
           const mesures = Array.isArray(detail?.mesures) ? detail.mesures : [];
 
           return (
-            <View key={m.id} style={styles.card}>
-              <Text style={styles.missionTitle}>Mission #{m.id}</Text>
-              <Text style={styles.info}>Devis #{m.devis_id}</Text>
-              <Text style={styles.info}>Adresse: {m.adresse || "—"}</Text>
-              <Text style={styles.info}>Ville: {m.ville || "—"}</Text>
-              <Text style={styles.info}>Client: {m.client_nom || "—"}</Text>
-              {isAdmin && (
-                <Text style={styles.info}>
-                  Technicien: {m.technicien_nom || "—"}
+            <Card key={m.id} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.missionTitle}>
+                  {t("missions.missionLabel", { id: m.id })}
                 </Text>
-              )}
-              <Text style={styles.info}>
-                Visite:{" "}
-                {m.date_visite ? String(m.date_visite).slice(0, 10) : "—"}
-              </Text>
-              <Text
-                style={[
-                  styles.statut,
-                  { color: STATUT_COLORS[m.statut] || "#92400e" },
-                ]}
-              >
-                Statut: {m.statut}
-              </Text>
+                <StatusPill status={m.statut} small />
+              </View>
 
-              <TouchableOpacity
-                style={styles.detailBtn}
+              <InfoRow
+                icon="document-text-outline"
+                label={t("missions.devisLabel", { id: m.devis_id })}
+              />
+              <InfoRow
+                icon="location-outline"
+                label={`${t("missions.city")} : ${m.ville || "—"}`}
+              />
+              <InfoRow
+                icon="navigate-outline"
+                label={`${t("missions.address")} : ${m.adresse || "—"}`}
+              />
+              <InfoRow
+                icon="person-outline"
+                label={`${t("missions.client")} : ${m.client_nom || "—"}`}
+              />
+              {isAdmin ? (
+                <InfoRow
+                  icon="construct-outline"
+                  label={`${t("missions.technician")} : ${
+                    m.technicien_nom || "—"
+                  }`}
+                />
+              ) : null}
+              <InfoRow
+                icon="calendar-outline"
+                label={`${t("missions.visit")} : ${
+                  m.date_visite ? String(m.date_visite).slice(0, 10) : "—"
+                }`}
+              />
+
+              <Button
+                label={isOpen ? t("missions.hideDetail") : t("missions.showDetail")}
+                icon={isOpen ? "chevron-up" : "chevron-down"}
+                variant="soft"
+                small
                 onPress={() => toggleDetail(m)}
-              >
-                <Text style={styles.white}>
-                  {isOpen ? "Masquer le détail" : "Voir le détail"}
-                </Text>
-              </TouchableOpacity>
+                style={styles.detailBtn}
+              />
 
-              {isOpen && (
+              {isOpen ? (
                 <View style={styles.detailBox}>
                   {detailLoading ? (
-                    <ActivityIndicator color="#b45309" />
+                    <ActivityIndicator color={COLORS.green} />
                   ) : (
                     <>
                       <Text style={styles.detailTitle}>
-                        Mesures ({mesures.length})
+                        {t("missions.measuresTitle", { n: mesures.length })}
                       </Text>
                       {mesures.length === 0 ? (
-                        <Text style={styles.info}>Aucune mesure saisie</Text>
+                        <Text style={styles.hint}>
+                          {t("missions.noMeasures")}
+                        </Text>
                       ) : (
                         mesures.map((mes) => (
                           <View key={mes.id} style={styles.mesureItem}>
-                            <Text style={styles.info}>
-                              Murs : {mes.longueur_murs} m · Hauteur :{" "}
-                              {mes.hauteur_sous_plafond} m
+                            <Text style={styles.mesureText}>
+                              {t("missions.measureLine1", {
+                                l: mes.longueur_murs,
+                                h: mes.hauteur_sous_plafond,
+                              })}
                             </Text>
-                            <Text style={styles.info}>
-                              Surface réelle : {mes.surface_reelle} m² ·
-                              Panneaux : {mes.nb_panneaux_reel}
+                            <Text style={styles.mesureText}>
+                              {t("missions.measureLine2", {
+                                s: mes.surface_reelle,
+                                p: mes.nb_panneaux_reel,
+                              })}
                             </Text>
-                            <Text style={styles.info}>
+                            <Text
+                              style={[
+                                styles.mesureState,
+                                mes.valide_par_admin
+                                  ? styles.mesureValidated
+                                  : styles.mesurePending,
+                              ]}
+                            >
                               {mes.valide_par_admin
-                                ? "✔ Validée par l'admin"
-                                : "⏳ En attente de validation"}
+                                ? t("missions.validated")
+                                : t("missions.pending")}
                             </Text>
                           </View>
                         ))
                       )}
 
-                      <View style={styles.actionRow}>
-                        <TouchableOpacity
-                          style={styles.actionBtn}
-                          onPress={() => saisirMesures(m)}
-                        >
-                          <Text style={styles.white}>Saisir les mesures</Text>
-                        </TouchableOpacity>
+                      <Button
+                        label={t("missions.enterMeasures")}
+                        icon="create-outline"
+                        variant="green"
+                        small
+                        onPress={() => saisirMesures(m)}
+                        style={styles.action}
+                      />
 
-                        {chantierId ? (
-                          <TouchableOpacity
-                            style={styles.chantierBtn}
-                            onPress={() =>
-                              navigation.navigate("ChantierDetail", {
-                                chantierId,
-                              })
-                            }
-                          >
-                            <Text style={styles.white}>
-                              Voir le chantier / Photos
-                            </Text>
-                          </TouchableOpacity>
-                        ) : (
-                          <Text style={styles.info}>
-                            Aucun chantier lié pour l'instant
-                          </Text>
-                        )}
-                      </View>
+                      {chantierId ? (
+                        <Button
+                          label={t("missions.viewSite")}
+                          icon="images-outline"
+                          variant="soft"
+                          small
+                          onPress={() =>
+                            navigation.navigate("ChantierDetail", {
+                              chantierId,
+                            })
+                          }
+                          style={styles.action}
+                        />
+                      ) : (
+                        <Text style={styles.hint}>{t("missions.noSite")}</Text>
+                      )}
                     </>
                   )}
                 </View>
-              )}
-            </View>
+              ) : null}
+            </Card>
           );
-        })}
-      </ScrollView>
+        })
+      )}
+    </Screen>
+  );
+}
+
+function InfoRow({ icon, label }) {
+  return (
+    <View style={styles.infoRow}>
+      <Ionicons name={icon} size={14} color={COLORS.muted} />
+      <Text style={styles.infoText} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#faf7f2" },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#92400e",
-    marginBottom: 16,
-  },
-  error: {
-    color: "#b91c1c",
-    backgroundColor: "#fee2e2",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  empty: { color: "#6b7280", textAlign: "center", padding: 24 },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 14,
+  content: { paddingBottom: SPACING.xxl },
+  loader: { marginTop: 40 },
+  card: { marginBottom: 12 },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 10,
   },
-  missionTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  info: { fontSize: 14, color: "#374151", marginTop: 4 },
-  statut: { fontSize: 13, color: "#92400e", marginTop: 6, fontWeight: "600" },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#faf7f2",
+  missionTitle: { color: COLORS.ink, fontFamily: FONTS.bold, fontSize: 16 },
+  infoRow: { flexDirection: "row", alignItems: "center", marginTop: 5 },
+  infoText: {
+    color: COLORS.text,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    marginLeft: 8,
+    flexShrink: 1,
   },
-  detailBtn: {
-    backgroundColor: "#0ea5e9",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 10,
-  },
+  detailBtn: { marginTop: 14 },
   detailBox: {
-    marginTop: 10,
+    marginTop: 14,
     borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
-    paddingTop: 10,
+    borderTopColor: COLORS.border,
+    paddingTop: 14,
   },
   detailTitle: {
+    color: COLORS.ink,
+    fontFamily: FONTS.semiBold,
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  hint: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
     fontSize: 13,
-    fontWeight: "700",
-    color: "#78350f",
-    marginBottom: 6,
+    marginTop: 6,
   },
   mesureItem: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 6,
+    backgroundColor: "#F5F1E8",
+    borderRadius: RADII.sm,
+    padding: 12,
+    marginBottom: 8,
   },
-  actionRow: { gap: 8, marginTop: 8 },
-  actionBtn: {
-    backgroundColor: "#0f766e",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
+  mesureText: {
+    color: COLORS.text,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    marginBottom: 3,
   },
-  chantierBtn: {
-    backgroundColor: "#b45309",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  white: { color: "#fff", fontWeight: "700" },
+  mesureState: { fontFamily: FONTS.semiBold, fontSize: 12, marginTop: 4 },
+  mesureValidated: { color: COLORS.greenDark },
+  mesurePending: { color: "#9A5A24" },
+  action: { marginTop: 8 },
 });

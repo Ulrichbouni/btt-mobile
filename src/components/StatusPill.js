@@ -16,6 +16,8 @@ const TONE_BY_STATUS = {
   refuse: "danger",
   envoye: "warning",
   en_attente: "warning",
+  assignee: "warning",
+  terminee: "success",
   en_cours: "info",
   nouveau: "info",
   bestseller: "solid",

@@ -292,11 +292,14 @@ function AppInner() {
                 <ChantierDetailScreen route={route} user={user} />
               )}
             </Stack.Screen>
-            <Stack.Screen
-              name="SaisieMesures"
-              options={{ headerShown: true, title: "📏 Saisie des mesures", ...stackHeader }}
-            >
-              {({ route }) => <SaisieMesuresScreen route={route} user={user} />}
+            <Stack.Screen name="SaisieMesures">
+              {({ route, navigation }) => (
+                <SaisieMesuresScreen
+                  route={route}
+                  navigation={navigation}
+                  user={user}
+                />
+              )}
             </Stack.Screen>
 
             <Stack.Screen name="AssistantIA" component={AssistantIAScreen} />
