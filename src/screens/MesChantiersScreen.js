@@ -23,7 +23,11 @@ import {
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
-import { ETAPES, progressionPourcent } from "../constants/etapes";
+import {
+  ETAPES,
+  buildTimelineSteps,
+  progressionPourcent,
+} from "../constants/etapes";
 import { COLORS, FONTS, RADII, SPACING } from "../theme/theme";
 
 // Chaque rôle dispose de sa route : le client voit ses propres chantiers,
@@ -33,16 +37,6 @@ const endpointForRole = (role) => {
   if (role === "technicien") return "/chantiers/technicien/mes-chantiers";
   return "/chantiers/mes-chantiers";
 };
-
-// Icône affichée dans la pastille de l'étape en cours.
-const STEP_ICONS = [
-  "document-text-outline",
-  "search-outline",
-  "checkmark-circle-outline",
-  "cube-outline",
-  "construct-outline",
-  "ribbon-outline",
-];
 
 export default function MesChantiersScreen({ navigation, user }) {
   const { t } = useI18n();
@@ -92,25 +86,13 @@ export default function MesChantiersScreen({ navigation, user }) {
   const selected =
     chantiers.find((c) => c.id === selectedId) || chantiers[0] || null;
 
-  const stepNames = t("chantiers.stepNames");
-  const stepDescs = t("chantiers.stepDescs");
-  const noms = Array.isArray(stepNames) ? stepNames : ETAPES;
-  const descs = Array.isArray(stepDescs) ? stepDescs : [];
   const etapeIndex = selected ? ETAPES.indexOf(selected.etape) : -1;
 
-  const steps = noms.map((name, i) => ({
-    title: name,
-    description: descs[i],
-    icon: STEP_ICONS[i],
-    state:
-      etapeIndex < 0
-        ? "upcoming"
-        : i < etapeIndex
-          ? "done"
-          : i === etapeIndex
-            ? "current"
-            : "upcoming",
-  }));
+  const steps = buildTimelineSteps({
+    etape: selected?.etape,
+    names: t("chantiers.stepNames"),
+    descs: t("chantiers.stepDescs"),
+  });
 
   return (
     <View style={styles.root}>

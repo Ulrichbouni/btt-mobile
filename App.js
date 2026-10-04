@@ -284,12 +284,13 @@ function AppInner() {
             <Stack.Screen name="Calculator" component={CalculatorScreen} />
             <Stack.Screen name="Devis" component={DevisScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
-            <Stack.Screen
-              name="ChantierDetail"
-              options={{ headerShown: true, title: "Chantier", ...stackHeader }}
-            >
-              {({ route }) => (
-                <ChantierDetailScreen route={route} user={user} />
+            <Stack.Screen name="ChantierDetail">
+              {({ route, navigation }) => (
+                <ChantierDetailScreen
+                  route={route}
+                  navigation={navigation}
+                  user={user}
+                />
               )}
             </Stack.Screen>
             <Stack.Screen name="SaisieMesures">

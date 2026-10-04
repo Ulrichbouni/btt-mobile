@@ -1,20 +1,25 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-  Image,
-} from "react-native";
+import { Alert, Image, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 
+import {
+  AppHeader,
+  Button,
+  Card,
+  EmptyState,
+  Screen,
+  SectionHeader,
+  StatusPill,
+  Timeline,
+} from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
-import { ETAPES, progressionPourcent } from "../constants/etapes";
+import { ETAPES, buildTimelineSteps, prochaineEtape } from "../constants/etapes";
+import { COLORS, FONTS, RADII, SPACING } from "../theme/theme";
 
-export default function ChantierDetailScreen({ route, user }) {
+export default function ChantierDetailScreen({ route, user, navigation }) {
+  const { t } = useI18n();
   const { chantierId } = route.params;
   const [chantier, setChantier] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +31,10 @@ export default function ChantierDetailScreen({ route, user }) {
       const { data } = await api.get(`/chantiers/${chantierId}`);
       setChantier(data);
     } catch (e) {
-      Alert.alert("Erreur", e.response?.data?.error || "Chargement impossible");
+      Alert.alert(
+        t("common.error"),
+        e.response?.data?.error || t("chantierDetail.loadError"),
+      );
     } finally {
       setLoading(false);
     }
@@ -40,10 +48,7 @@ export default function ChantierDetailScreen({ route, user }) {
     // 1. Demander la permission
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
-        "Permission refusée",
-        "Autorisez l'accès à la galerie pour ajouter des photos.",
-      );
+      Alert.alert(t("common.error"), t("chantierDetail.permission"));
       return;
     }
 
@@ -78,52 +83,62 @@ export default function ChantierDetailScreen({ route, user }) {
         urls: uploadedUrls,
       });
 
-      Alert.alert("Succès", `${uploadedUrls.length} photo(s) ajoutée(s)`);
+      Alert.alert(
+        t("common.success"),
+        t("chantierDetail.photosAdded", { n: uploadedUrls.length }),
+      );
       await load();
     } catch (e) {
-      const msg = e.response?.data?.error || e.message || "Upload impossible";
-      Alert.alert("Erreur", msg);
+      Alert.alert(
+        t("common.error"),
+        e.response?.data?.error || e.message || t("chantierDetail.uploadError"),
+      );
     } finally {
       setUploadingType(null);
     }
   };
 
   const avancer = () => {
-    const idx = ETAPES.indexOf(chantier?.etape);
-    if (idx >= ETAPES.length - 1) {
-      Alert.alert("Info", "Chantier déjà à la dernière étape.");
+    const prochaine = prochaineEtape(chantier?.etape);
+    if (!prochaine) {
+      Alert.alert(t("common.success"), t("chantierDetail.lastStep"));
       return;
     }
-    const prochaine = ETAPES[idx + 1];
-    Alert.alert("Avancer", `Passer à « ${prochaine} » ?`, [
-      { text: "Annuler", style: "cancel" },
-      {
-        text: "Avancer",
-        onPress: async () => {
-          try {
-            await api.put(`/chantiers/${chantierId}/avancer`);
-            await load();
-          } catch (e) {
-            Alert.alert("Erreur", e.response?.data?.error || "Impossible");
-          }
+    Alert.alert(
+      t("chantierDetail.advanceTitle"),
+      t("chantierDetail.advanceConfirm", { etape: prochaine }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("chantierDetail.advanceCta"),
+          onPress: async () => {
+            try {
+              await api.put(`/chantiers/${chantierId}/avancer`);
+              await load();
+            } catch (e) {
+              Alert.alert(
+                t("common.error"),
+                e.response?.data?.error || t("chantierDetail.advanceError"),
+              );
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#b45309" />
-      </View>
-    );
-  }
+  if (loading) return <Screen scroll={false} />;
 
   if (!chantier) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.empty}>Chantier introuvable.</Text>
-      </View>
+      <Screen>
+        <AppHeader showBell={false} />
+        <EmptyState
+          icon="construct-outline"
+          title={t("chantierDetail.notFound")}
+          message=""
+        />
+      </Screen>
     );
   }
 
@@ -140,143 +155,199 @@ export default function ChantierDetailScreen({ route, user }) {
     user?.role === "admin" ||
     (user?.role === "technicien" && chantier.technicien_id === user?.id);
 
+  const steps = buildTimelineSteps({
+    etape: chantier.etape,
+    names: t("chantiers.stepNames"),
+    descs: t("chantiers.stepDescs"),
+  });
+  const etapeIndex = ETAPES.indexOf(chantier.etape);
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Chantier #{chantier.id}</Text>
-      <Text style={styles.meta}>Devis #{chantier.devis_id}</Text>
-      <Text style={styles.meta}>Ville : {chantier.ville || "—"}</Text>
-      <Text style={styles.meta}>Adresse : {chantier.adresse || "—"}</Text>
-      <Text style={styles.meta}>
-        Surface : {chantier.surface ? `${chantier.surface} m²` : "—"}
-      </Text>
-      <Text style={styles.etape}>Étape : {chantier.etape || "—"}</Text>
+    <Screen contentStyle={styles.content}>
+      <AppHeader
+        showBell
+        onBell={() => navigation?.navigate("Notifications")}
+        name={user?.nom}
+      />
+      <SectionHeader
+        icon="construct"
+        tone="yellow"
+        title={t("chantierDetail.title", { id: chantier.id })}
+        subtitle={t("missions.devisLabel", { id: chantier.devis_id })}
+      />
 
-      {canManage ? (
-        <TouchableOpacity style={styles.primary} onPress={avancer}>
-          <Text style={styles.white}>Avancer d'une étape</Text>
-        </TouchableOpacity>
-      ) : (
-        <Text style={styles.readonlyNote}>
-          Consultation seule : seuls l'admin et le technicien assigné peuvent
-          faire avancer ce chantier.
-        </Text>
-      )}
+      <Card>
+        <View style={styles.infoRow}>
+          <Ionicons name="location-outline" size={15} color={COLORS.muted} />
+          <Text style={styles.infoText}>
+            {chantier.ville || "—"} · {chantier.adresse || "—"}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Ionicons name="resize-outline" size={15} color={COLORS.muted} />
+          <Text style={styles.infoText}>
+            {chantier.surface ? `${chantier.surface} m²` : "—"}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Ionicons name="git-branch-outline" size={15} color={COLORS.muted} />
+          <Text style={styles.infoText}>
+            {t("chantiers.stepOf", {
+              n: etapeIndex >= 0 ? etapeIndex + 1 : 0,
+              total: ETAPES.length,
+            })}
+          </Text>
+          <StatusPill
+            status={chantier.etape ? undefined : "en_cours"}
+            label={chantier.etape || "—"}
+            tone="neutral"
+            small
+            style={styles.etapePill}
+          />
+        </View>
 
-      <Text style={styles.sectionTitle}>
-        Photos avant ({photosAvant.length})
-      </Text>
-      <View style={styles.photoGrid}>
-        {photosAvant.map((url, i) => (
-          <Image key={i} source={{ uri: url }} style={styles.photo} />
-        ))}
-      </View>
-      {canManage && (
-        <TouchableOpacity
-          style={[styles.uploadBtn, uploadingType === "avant" && styles.disabled]}
-          onPress={() => pickAndUpload("avant")}
-          disabled={uploadingType === "avant"}
-        >
-          {uploadingType === "avant" ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.white}>+ Ajouter photos avant</Text>
-          )}
-        </TouchableOpacity>
-      )}
+        {canManage ? (
+          <Button
+            label={t("chantierDetail.advance")}
+            icon="arrow-forward"
+            onPress={avancer}
+            style={styles.advanceBtn}
+          />
+        ) : (
+          <Text style={styles.readonly}>{t("chantierDetail.readonly")}</Text>
+        )}
+      </Card>
 
-      <Text style={styles.sectionTitle}>
-        Photos après ({photosApres.length})
-      </Text>
-      <View style={styles.photoGrid}>
-        {photosApres.map((url, i) => (
-          <Image key={i} source={{ uri: url }} style={styles.photo} />
-        ))}
-      </View>
-      {canManage && (
-        <TouchableOpacity
-          style={[styles.uploadBtn, uploadingType === "apres" && styles.disabled]}
-          onPress={() => pickAndUpload("apres")}
-          disabled={uploadingType === "apres"}
-        >
-          {uploadingType === "apres" ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.white}>+ Ajouter photos après</Text>
-          )}
-        </TouchableOpacity>
-      )}
+      <PhotoSection
+        title={t("chantierDetail.photosAvant", { n: photosAvant.length })}
+        photos={photosAvant}
+        emptyLabel={t("chantierDetail.noPhotos")}
+        actionLabel={t("chantierDetail.addAvant")}
+        uploading={uploadingType === "avant"}
+        onAdd={() => pickAndUpload("avant")}
+        canManage={canManage}
+      />
 
-      <Text style={styles.sectionTitle}>Historique</Text>
+      <PhotoSection
+        title={t("chantierDetail.photosApres", { n: photosApres.length })}
+        photos={photosApres}
+        emptyLabel={t("chantierDetail.noPhotos")}
+        actionLabel={t("chantierDetail.addApres")}
+        uploading={uploadingType === "apres"}
+        onAdd={() => pickAndUpload("apres")}
+        canManage={canManage}
+      />
+
+      <Text style={styles.sectionTitle}>{t("chantiers.steps")}</Text>
+      <Timeline steps={steps} />
+
+      <Text style={styles.sectionTitle}>{t("chantierDetail.history")}</Text>
       {(Array.isArray(chantier.historique) ? chantier.historique : []).map(
         (h, i) => (
-          <View key={i} style={styles.histItem}>
-            <Text style={styles.histAction}>{h.action}</Text>
-            <Text style={styles.histDate}>
+          <Card key={`${h.action}-${i}`} style={styles.historyCard} padding={14}>
+            <Text style={styles.historyAction}>{h.action}</Text>
+            <Text style={styles.historyDate}>
               {h.date ? new Date(h.date).toLocaleString() : ""}
             </Text>
-          </View>
+          </Card>
         ),
       )}
-    </ScrollView>
+    </Screen>
+  );
+}
+
+function PhotoSection({
+  title,
+  photos,
+  emptyLabel,
+  actionLabel,
+  uploading,
+  onAdd,
+  canManage,
+}) {
+  return (
+    <>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {photos.length === 0 ? (
+        <Text style={styles.emptyPhotos}>{emptyLabel}</Text>
+      ) : (
+        <View style={styles.photoGrid}>
+          {photos.map((url, i) => (
+            <Image
+              key={url || i}
+              source={{ uri: url }}
+              style={styles.photo}
+            />
+          ))}
+        </View>
+      )}
+      {canManage ? (
+        <Button
+          label={uploading ? "" : actionLabel}
+          icon="camera-outline"
+          variant="soft"
+          small
+          onPress={onAdd}
+          loading={uploading}
+          disabled={uploading}
+          style={styles.uploadBtn}
+        />
+      ) : null}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+  content: { paddingBottom: SPACING.xxl },
+  infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  infoText: {
+    color: COLORS.text,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    marginLeft: 8,
+    flexShrink: 1,
   },
-  title: { fontSize: 24, fontWeight: "800", color: "#92400e", marginBottom: 8 },
-  meta: { color: "#6b7280", marginBottom: 2 },
-  etape: {
-    fontWeight: "700",
-    color: "#b45309",
+  etapePill: { marginLeft: 8 },
+  advanceBtn: { marginTop: 10 },
+  readonly: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    backgroundColor: "#F5F1E8",
+    borderRadius: RADII.sm,
+    padding: 12,
     marginTop: 8,
-    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#78350f",
-    marginTop: 16,
+    color: COLORS.ink,
+    fontFamily: FONTS.bold,
+    fontSize: 17,
+    marginTop: 22,
+    marginBottom: 12,
+  },
+  emptyPhotos: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  photoGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 10 },
+  photo: {
+    width: 96,
+    height: 96,
+    borderRadius: RADII.sm,
+    backgroundColor: "#EEE7DB",
+    marginRight: 8,
     marginBottom: 8,
   },
-  primary: {
-    backgroundColor: "#0f766e",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  uploadBtn: {
-    backgroundColor: "#0ea5e9",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  disabled: { opacity: 0.6 },
-  white: { color: "#fff", fontWeight: "700" },
-  photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  photo: { width: 100, height: 100, borderRadius: 8, backgroundColor: "#eee" },
-  histItem: {
-    backgroundColor: "#fff",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 6,
-  },
-  histAction: { fontSize: 13, fontWeight: "600", color: "#374151" },
-  histDate: { fontSize: 11, color: "#9ca3af", marginTop: 2 },
-  empty: { color: "#6b7280" },
-  readonlyNote: {
-    fontSize: 12,
-    color: "#6b7280",
-    backgroundColor: "#f3f4f6",
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 4,
+  uploadBtn: { alignSelf: "flex-start" },
+  historyCard: { marginBottom: 8 },
+  historyAction: { color: COLORS.ink, fontFamily: FONTS.medium, fontSize: 13 },
+  historyDate: {
+    color: COLORS.mutedLight,
+    fontFamily: FONTS.regular,
+    fontSize: 11,
+    marginTop: 3,
   },
 });
