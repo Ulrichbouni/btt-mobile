@@ -1,0 +1,83 @@
+// English strings (same shape as fr.js).
+export default {
+  common: {
+    appName: "BTT-LUX",
+    company: "Begueni Timber Trading",
+    tagline: "Luxerboard Distributor — Cameroon",
+    seeAll: "See all",
+    cancel: "Cancel",
+    choose: "Choose an option",
+    loading: "Loading…",
+    retry: "Retry",
+  },
+  tabs: {
+    home: "Home",
+    catalogue: "Catalogue",
+    devis: "Quotes",
+    chantiers: "Sites",
+    mesChantiers: "My Sites",
+    missions: "Jobs",
+    paiement: "Payment",
+    profil: "Profile",
+  },
+  statuses: {
+    en_stock: "In stock",
+    rupture: "Out of stock",
+    disponible: "Available",
+    indisponible: "Unavailable",
+    envoye: "Pending",
+    en_cours: "In progress",
+    valide: "Approved",
+    approuve: "Approved",
+    refuse: "Rejected",
+    paye: "Paid",
+    bestseller: "Bestseller",
+    nouveau: "New",
+    termine: "Completed",
+  },
+  welcome: {
+    productLine: "Luxerboard Fibrocement",
+    offer: "Offer",
+    discount: "-15%",
+    title1: "Build",
+    title2: "Better,",
+    title3: "Build",
+    title4: "Lasting",
+    subtitle:
+      "Luxerboard fibre cement panels — strong, durable, zero maintenance. Official distributor in Cameroon.",
+    cta: "Get started",
+  },
+  assistant: {
+    title: "AI Assistant",
+    subtitle: "Luxerboard technical advice",
+    welcome:
+      "Hello! I am your BTT-LUX technical assistant. I can help you with:",
+    bullets: [
+      "Material calculations",
+      "Installation techniques",
+      "Product selection",
+      "Building standards",
+    ],
+    ask: "How can I help you?",
+    faqTitle: "Frequently asked questions",
+    inputPlaceholder: "Ask your technical question…",
+    disclaimer:
+      "Indicative answers — for accurate pricing, please request a quote.",
+    fallback:
+      "Thanks for your question! For a detailed answer, check the FAQ above or request a quote from the app.",
+    you: "You",
+  },
+  annuaire: {
+    title: "Installer Directory",
+    subtitle: "BTT-LUX certified installers",
+    searchPlaceholder: "Search an installer…",
+    all: "All",
+    yearsExp: "{n} yrs exp.",
+    anneeExp: "{n} yr exp.",
+    projects: "{n} projects",
+    contact: "Contact via WhatsApp",
+    empty: "No installer matches your search.",
+    whatsappMessage:
+      "Hello, I am contacting you from the BTT-LUX app about a Luxerboard installation.",
+  },
+};

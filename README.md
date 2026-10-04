@@ -65,20 +65,31 @@ npx eas build -p ios --profile production
 ## Structure
 
 ```
-mobile/
-├── App.js                  # Navigation principale (Stack + Tabs)
+btt-mobile/
+├── App.js                  # Navigation principale (Stack + Tabs par rôle)
 ├── app.json                # Configuration Expo & URL de l'API
 ├── src/
 │   ├── services/
 │   │   ├── api.js          # Client Axios avec token
-│   │   └── auth.js         # Gestion de session (AsyncStorage)
+│   │   ├── auth.js         # Gestion de session (AsyncStorage + mise à jour du rôle)
+│   │   └── pdf.js          # Devis PDF : téléchargement authentifié + partage
 │   └── screens/
 │       ├── LoginScreen.js
 │       ├── RegisterScreen.js
-│       ├── HomeScreen.js
+│       ├── HomeScreen.js           # Raccourcis filtrés par rôle
 │       ├── CatalogueScreen.js
+│       ├── CalculatorScreen.js     # POST /calculator/estimer
+│       ├── DevisScreen.js          # POST /devis, mes devis, PDF, paiement
+│       ├── NotificationsScreen.js  # GET /notifications + PATCH /:id/lu
+│       ├── MesChantiersScreen.js   # Suivi chantiers (client/technicien/admin)
+│       ├── ChantierDetailScreen.js # Photos + avancement (admin/technicien assigné)
+│       ├── MissionsScreen.js       # Missions technicien (+ saisie mesures)
+│       ├── SaisieMesuresScreen.js  # POST /missions/:id/mesures
 │       ├── PaiementScreen.js
-│       ├── MissionsScreen.js
 │       ├── ProfileScreen.js
-│       └── SimpleScreen.js
+│       └── SimpleScreen.js         # Écran générique (non branché)
 ```
+
+> ⚠️ Le code applicatif maintenu est ce dossier `btt-mobile/`. Le dossier
+> `mobile/` à la racine ne contient qu'un ancien build (APK) et ne doit pas
+> être utilisé comme source.

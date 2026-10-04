@@ -1,23 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import api from '../services/api';
-import { clearSession } from '../services/auth';
+import { clearSession, updateSessionUser, updateSessionToken } from '../services/auth';
 
-export default function ProfileScreen({ user, onLogout }) {
+export default function ProfileScreen({ user, onLogout, onUserUpdated }) {
   const [form, setForm] = useState({ nom: '', email: '', telephone: '', mot_de_passe: '' });
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [role, setRole] = useState(user?.role || '');
 
+  // Recharge le profil en base (rôle inclus) et répercute la session :
+  // une promotion client -> technicien devient visible sans reconnexion.
   useEffect(() => {
-    api.get('/auth/me').then(res => {
+    let cancelled = false;
+
+    api.get('/auth/me').then(async (res) => {
+      if (cancelled) return;
+      const fresh = res.data || {};
       setForm({
-        nom: res.data.nom || '',
-        email: res.data.email || '',
-        telephone: res.data.telephone || '',
+        nom: fresh.nom || '',
+        email: fresh.email || '',
+        telephone: fresh.telephone || '',
         mot_de_passe: ''
       });
+      if (fresh.role) setRole(fresh.role);
+
+      const merged = { ...(user || {}), ...fresh };
+      await updateSessionUser(merged);
+      if (onUserUpdated) onUserUpdated(merged);
     }).catch(() => {});
-  }, []);
+
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -29,6 +43,19 @@ export default function ProfileScreen({ user, onLogout }) {
       if (form.mot_de_passe) body.mot_de_passe = form.mot_de_passe;
 
       const res = await api.put('/auth/me', body);
+      const updated = res.data?.user || res.data;
+      // Après un changement de mot de passe, l'ancien JWT est révoqué :
+      // le backend renvoie un nouveau token pour l'appareil courant.
+      const newToken = res.data?.token;
+      if (typeof newToken === 'string' && newToken.length > 0) {
+        await updateSessionToken(newToken);
+      }
+      if (updated) {
+        const merged = { ...(user || {}), ...updated };
+        if (merged.role) setRole(merged.role);
+        await updateSessionUser(merged);
+        if (onUserUpdated) onUserUpdated(merged);
+      }
       Alert.alert('Succès', 'Profil mis à jour !');
       setEditing(false);
     } catch (err) {
@@ -88,7 +115,7 @@ export default function ProfileScreen({ user, onLogout }) {
           </>
         )}
 
-        <Text style={styles.role}>Rôle: {user?.role}</Text>
+        <Text style={styles.role}>Rôle: {role || '—'}</Text>
       </View>
 
       {!editing ? (

@@ -1,0 +1,81 @@
+// Annuaire des poseurs certifiés BTT-LUX — données de démonstration locales.
+// À remplacer plus tard par un endpoint dédié (GET /poseurs) sans changer
+// l'écran : la structure des objets est déjà celle d'une réponse API.
+// Les numéros sont factices (format international sans « + » pour wa.me).
+
+export const POSEURS = [
+  {
+    id: 1,
+    nom: "Jean-Paul Mbarga",
+    ville: "Yaoundé",
+    annees: 8,
+    bio: "Expert en pose de panneaux fibrociment depuis 8 ans.",
+    note: 4.8,
+    projets: 142,
+    competences: ["Cloisons", "Façades", "Toitures"],
+    disponible: true,
+    telephone: "237690010203",
+  },
+  {
+    id: 2,
+    nom: "Samuel Nkomo",
+    ville: "Douala",
+    annees: 5,
+    bio: "Poseur certifié spécialisé dans les façades extérieures.",
+    note: 4.6,
+    projets: 87,
+    competences: ["Façades", "Toitures"],
+    disponible: true,
+    telephone: "237677040506",
+  },
+  {
+    id: 3,
+    nom: "Marie-Claire Essomba",
+    ville: "Yaoundé",
+    annees: 4,
+    bio: "Poseuse certifiée niveau 1, spécialisée dans les finitions soignées.",
+    note: 4.4,
+    projets: 56,
+    competences: ["Cloisons", "Finitions"],
+    disponible: true,
+    telephone: "237655070809",
+  },
+  {
+    id: 4,
+    nom: "Alain Fotso",
+    ville: "Douala",
+    annees: 7,
+    bio: "Chantiers résidentiels et commerciaux, équipes de 3 poseurs.",
+    note: 4.7,
+    projets: 121,
+    competences: ["Cloisons", "Façades", "Finitions"],
+    disponible: false,
+    telephone: "237699101112",
+  },
+  {
+    id: 5,
+    nom: "Brice Ndongo",
+    ville: "Bafoussam",
+    annees: 6,
+    bio: "Spécialiste toitures et bardages fibrociment en zone Ouest.",
+    note: 4.5,
+    projets: 74,
+    competences: ["Toitures", "Façades"],
+    disponible: true,
+    telephone: "237695131415",
+  },
+  {
+    id: 6,
+    nom: "Sandrine Abena",
+    ville: "Ngaoundéré",
+    annees: 3,
+    bio: "Poseuse certifiée, interventions Grand Nord.",
+    note: 4.3,
+    projets: 32,
+    competences: ["Cloisons", "Finitions"],
+    disponible: true,
+    telephone: "237691161718",
+  },
+];
+
+export const ANNUAIRE_CITIES = [...new Set(POSEURS.map((p) => p.ville))];

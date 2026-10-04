@@ -16,6 +16,7 @@ export default function LoginScreen({ navigation, onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [otpRequired, setOtpRequired] = useState(false); // champ OTP visible uniquement si demandé
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
@@ -23,23 +24,33 @@ export default function LoginScreen({ navigation, onLogin }) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
     }
+    if (otpRequired && !otp) {
+      Alert.alert("Erreur", "Code OTP requis");
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await api.post("/auth/login", {
-        email,
+        email: email.trim().toLowerCase(),
         mot_de_passe: password,
         otp_token: otp || undefined,
       });
       await saveSession(data.token, data.user);
       onLogin(data.user);
     } catch (err) {
-      const msg = err.response?.data?.error || "Connexion impossible";
-      Alert.alert(
-        "Erreur",
-        msg === "OTP_REQUIRED" ? "Un code OTP est requis" : msg,
-      );
+      const code = err.response?.data?.error;
+      if (code === "OTP_REQUIRED") {
+        setOtpRequired(true);
+        Alert.alert(
+          "Vérification 2FA",
+          "Saisissez le code à 6 chiffres de votre application d'authentification.",
+        );
+      } else {
+        Alert.alert("Erreur", code || "Connexion impossible");
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -62,13 +73,17 @@ export default function LoginScreen({ navigation, onLogin }) {
         secureTextEntry
         onChangeText={setPassword}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Code OTP (si activé)"
-        value={otp}
-        keyboardType="number-pad"
-        onChangeText={setOtp}
-      />
+      {otpRequired && (
+        <TextInput
+          style={[styles.input, styles.otpInput]}
+          placeholder="Code 2FA (6 chiffres)"
+          value={otp}
+          keyboardType="number-pad"
+          maxLength={6}
+          onChangeText={setOtp}
+          autoFocus
+        />
+      )}
 
       <TouchableOpacity
         style={styles.button}
@@ -78,7 +93,9 @@ export default function LoginScreen({ navigation, onLogin }) {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Se connecter</Text>
+          <Text style={styles.buttonText}>
+            {otpRequired ? "Valider le code" : "Se connecter"}
+          </Text>
         )}
       </TouchableOpacity>
 
@@ -116,6 +133,12 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
     marginBottom: 12,
+  },
+  otpInput: {
+    letterSpacing: 6,
+    textAlign: "center",
+    fontWeight: "700",
+    fontSize: 20,
   },
   button: {
     backgroundColor: "#b45309",

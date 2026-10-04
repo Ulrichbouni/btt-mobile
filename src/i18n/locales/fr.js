@@ -1,0 +1,83 @@
+// Chaînes françaises (langue par défaut).
+export default {
+  common: {
+    appName: "BTT-LUX",
+    company: "Begueni Timber Trading",
+    tagline: "Distributeur Luxerboard — Cameroun",
+    seeAll: "Voir tout",
+    cancel: "Annuler",
+    choose: "Choisir une option",
+    loading: "Chargement…",
+    retry: "Réessayer",
+  },
+  tabs: {
+    home: "Accueil",
+    catalogue: "Catalogue",
+    devis: "Devis",
+    chantiers: "Chantiers",
+    mesChantiers: "Mes Chantiers",
+    missions: "Missions",
+    paiement: "Paiement",
+    profil: "Profil",
+  },
+  statuses: {
+    en_stock: "En stock",
+    rupture: "Rupture",
+    disponible: "Disponible",
+    indisponible: "Indisponible",
+    envoye: "En attente",
+    en_cours: "En cours",
+    valide: "Approuvé",
+    approuve: "Approuvé",
+    refuse: "Refusé",
+    paye: "Payé",
+    bestseller: "Bestseller",
+    nouveau: "Nouveau",
+    termine: "Terminé",
+  },
+  welcome: {
+    productLine: "Luxerboard Fibrociment",
+    offer: "Offre",
+    discount: "-15%",
+    title1: "Construire",
+    title2: "Mieux,",
+    title3: "Construire",
+    title4: "Durable",
+    subtitle:
+      "Panneaux fibrociment Luxerboard — résistants, durables, zéro entretien. Distributeur officiel au Cameroun.",
+    cta: "Commencer",
+  },
+  assistant: {
+    title: "Assistant IA",
+    subtitle: "Conseil technique Luxerboard",
+    welcome:
+      "Bonjour ! Je suis votre assistant technique BTT-LUX. Je peux vous aider avec :",
+    bullets: [
+      "Calculs de matériaux",
+      "Techniques de pose",
+      "Choix de produits",
+      "Normes de construction",
+    ],
+    ask: "Comment puis-je vous aider ?",
+    faqTitle: "Questions fréquentes",
+    inputPlaceholder: "Posez votre question technique…",
+    disclaimer:
+      "Réponses indicatives — pour un chiffrage précis, demandez un devis.",
+    fallback:
+      "Merci pour votre question ! Pour une réponse détaillée, consultez les questions fréquentes ci-dessus ou demandez un devis depuis l'application.",
+    you: "Vous",
+  },
+  annuaire: {
+    title: "Annuaire Poseurs",
+    subtitle: "Poseurs certifiés BTT-LUX",
+    searchPlaceholder: "Rechercher un poseur…",
+    all: "Tous",
+    yearsExp: "{n} ans exp.",
+    anneeExp: "{n} an exp.",
+    projects: "{n} projets",
+    contact: "Contacter via WhatsApp",
+    empty: "Aucun poseur ne correspond à votre recherche.",
+    whatsappMessage:
+      "Bonjour, je vous contacte depuis l'application BTT-LUX au sujet d'une pose Luxerboard.",
+  },
+};
