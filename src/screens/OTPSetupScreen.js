@@ -1,5 +1,168 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, ActivityIndicator } from "react-native";
+import { Alert, Image, StyleSheet, Text, View } from "react-native";
+
+import {
+  AppHeader,
+  Button,
+  Card,
+  Field,
+  Screen,
+  SectionHeader,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
-export default function OTPSetupScreen(){const [secret,setSecret]=useState("");const [code,setCode]=useState("");const [qr,setQr]=useState("");const [enabled,setEnabled]=useState(false);const [loading,setLoading]=useState(false);const enable=async()=>{setLoading(true);try{const {data}=await api.post("/otp/enable");setSecret(data.secret);setQr(data.qrCode)}catch(e){Alert.alert("Erreur",e.response?.data?.error||"Activation impossible")}finally{setLoading(false)}};const verify=async()=>{setLoading(true);try{await api.post("/otp/verify",{token:code});setEnabled(true);Alert.alert("Succès","OTP activé")}catch(e){Alert.alert("Erreur",e.response?.data?.error||"Code invalide")}finally{setLoading(false)}};const disable=async()=>{setLoading(true);try{await api.post("/otp/disable");setEnabled(false);setQr("");setSecret("")}catch(e){Alert.alert("Erreur",e.response?.data?.error||"Désactivation impossible")}finally{setLoading(false)}};return <View style={styles.container}><Text style={styles.title}>Sécurité OTP</Text><Text style={styles.subtitle}>TOTP gratuit avec Google Authenticator, Aegis ou Microsoft Authenticator.</Text>{!qr?<TouchableOpacity style={styles.primary} onPress={enable} disabled={loading}>{loading?<ActivityIndicator color="#fff"/>:<Text style={styles.white}>Générer le QR code</Text>}</TouchableOpacity>:<><Image source={{uri:qr}} style={styles.qr}/><Text style={styles.secret}>Conservez le secret : {secret}</Text><TextInput style={styles.input} placeholder="Code à 6 chiffres" keyboardType="number-pad" value={code} onChangeText={setCode}/><TouchableOpacity style={styles.primary} onPress={verify} disabled={loading}><Text style={styles.white}>Valider</Text></TouchableOpacity></>}{enabled&&<TouchableOpacity style={styles.danger} onPress={disable}><Text style={styles.white}>Désactiver</Text></TouchableOpacity>}</View>}
-const styles=StyleSheet.create({container:{flex:1,padding:20,backgroundColor:"#faf7f2",justifyContent:"center"},title:{fontSize:28,fontWeight:"800",color:"#92400e",marginBottom:8},subtitle:{color:"#7c2d12",marginBottom:18},primary:{backgroundColor:"#b45309",padding:15,borderRadius:10,alignItems:"center",marginBottom:12},danger:{backgroundColor:"#dc2626",padding:15,borderRadius:10,alignItems:"center",marginTop:12},white:{color:"#fff",fontWeight:"700"},input:{backgroundColor:"#fff",borderWidth:1,borderColor:"#e5e5e5",borderRadius:10,padding:14,marginBottom:12},qr:{width:220,height:220,alignSelf:"center",marginBottom:12},secret:{color:"#6b7280",fontSize:12,marginBottom:12}});
+import { COLORS, FONTS, SPACING } from "../theme/theme";
+
+// Double authentification TOTP : QR code à scanner, puis vérification d'un
+// code à 6 chiffres. Les endpoints backend restent /otp/enable,
+// /otp/verify et /otp/disable.
+export default function OTPSetupScreen({ navigation }) {
+  const { t } = useI18n();
+  const [secret, setSecret] = useState("");
+  const [code, setCode] = useState("");
+  const [qr, setQr] = useState("");
+  const [enabled, setEnabled] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const enable = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.post("/otp/enable");
+      setSecret(data.secret);
+      setQr(data.qrCode);
+    } catch (e) {
+      Alert.alert(
+        t("common.error"),
+        e.response?.data?.error || t("otp.enableError"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verify = async () => {
+    setLoading(true);
+    try {
+      await api.post("/otp/verify", { token: code });
+      setEnabled(true);
+      Alert.alert(t("common.success"), t("otp.enabled"));
+    } catch (e) {
+      Alert.alert(
+        t("common.error"),
+        e.response?.data?.error || t("otp.verifyError"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const disable = async () => {
+    setLoading(true);
+    try {
+      await api.post("/otp/disable");
+      setEnabled(false);
+      setQr("");
+      setSecret("");
+    } catch (e) {
+      Alert.alert(
+        t("common.error"),
+        e.response?.data?.error || t("otp.disableError"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Screen contentStyle={styles.content}>
+      <AppHeader
+        showBell
+        onBell={() => navigation?.navigate("Notifications")}
+      />
+      <SectionHeader
+        icon="shield-checkmark"
+        tone="brown"
+        title={t("otp.title")}
+        subtitle={t("otp.subtitle")}
+      />
+
+      <Card>
+        <Text style={styles.hint}>{t("otp.hint")}</Text>
+
+        {enabled ? (
+          <StatusPill status="en_cours" label={t("otp.enabled")} small={false} />
+        ) : null}
+
+        {!qr ? (
+          <Button
+            label={t("otp.generate")}
+            icon="qr-code-outline"
+            onPress={enable}
+            loading={loading}
+            disabled={loading}
+            style={styles.block}
+          />
+        ) : (
+          <>
+            <View style={styles.qrWrap}>
+              <Image source={{ uri: qr }} style={styles.qr} />
+            </View>
+            <Text style={styles.secret}>
+              {t("otp.keepSecret", { secret })}
+            </Text>
+            <Field
+              label={t("otp.codeLabel")}
+              icon="keypad-outline"
+              value={code}
+              onChangeText={setCode}
+              keyboardType="number-pad"
+              maxLength={6}
+            />
+            <Button
+              label={t("otp.verify")}
+              icon="checkmark"
+              variant="green"
+              onPress={verify}
+              loading={loading}
+              disabled={loading}
+            />
+          </>
+        )}
+
+        {enabled ? (
+          <Button
+            label={t("otp.disable")}
+            variant="danger"
+            icon="close-circle-outline"
+            onPress={disable}
+            loading={loading}
+            disabled={loading}
+            style={styles.block}
+          />
+        ) : null}
+      </Card>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { paddingBottom: SPACING.xxl },
+  hint: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  block: { marginTop: 16 },
+  qrWrap: { alignItems: "center", marginBottom: 14 },
+  qr: { width: 220, height: 220, borderRadius: 16 },
+  secret: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+});

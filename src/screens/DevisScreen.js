@@ -1,30 +1,36 @@
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
   Alert,
-  ActivityIndicator,
   Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 
+import {
+  AppHeader,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  FilterPill,
+  Screen,
+  SectionHeader,
+  SegmentedTabs,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
 import { isValidDate, toNumber } from "../utils/numbers";
 import { telechargerDevisPDF } from "../services/pdf";
-
-const STATUT_COLORS = {
-  envoye: "#2563eb",
-  en_cours: "#b45309",
-  valide: "#16a34a",
-  refuse: "#dc2626",
-  paye: "#0f766e",
-};
+import { COLORS, FONTS, RADII, SPACING, formatXAF } from "../theme/theme";
 
 export default function DevisScreen({ navigation, route }) {
+  const { t } = useI18n();
+  const [tab, setTab] = useState("new");
   const [produits, setProduits] = useState([]);
   const [produitId, setProduitId] = useState(null);
   const [form, setForm] = useState({
@@ -47,7 +53,7 @@ export default function DevisScreen({ navigation, route }) {
       const { data } = await api.get("/devis/mes-devis");
       setDevisList(Array.isArray(data) ? data : []);
     } catch (e) {
-      setListError(e.response?.data?.error || "Liste des devis indisponible");
+      setListError(e.response?.data?.error || t("devis.listError"));
     }
   };
 
@@ -82,15 +88,13 @@ export default function DevisScreen({ navigation, route }) {
       surface: params.surface ? String(params.surface) : prev.surface,
     }));
     if (params.produit_id) setProduitId(Number(params.produit_id));
+    setTab("new");
   }, [route?.params]);
 
   const addPhotos = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
-        "Permission refusée",
-        "Autorisez l'accès à la galerie pour joindre des photos.",
-      );
+      Alert.alert(t("common.error"), t("devis.photos"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -138,19 +142,19 @@ export default function DevisScreen({ navigation, route }) {
     const date = form.date_souhaitee.trim();
 
     if (!surface || surface <= 0) {
-      Alert.alert("Erreur", "Surface invalide (nombre positif requis)");
+      Alert.alert(t("common.error"), t("devis.invalidSurface"));
       return;
     }
     if (ville.length < 2) {
-      Alert.alert("Erreur", "Ville requise (2 caractères minimum)");
+      Alert.alert(t("common.error"), t("devis.invalidCity"));
       return;
     }
     if (adresse.length < 5) {
-      Alert.alert("Erreur", "Adresse requise (5 caractères minimum)");
+      Alert.alert(t("common.error"), t("devis.invalidAddress"));
       return;
     }
     if (date && !isValidDate(date)) {
-      Alert.alert("Erreur", "Date souhaitée au format AAAA-MM-JJ");
+      Alert.alert(t("common.error"), t("devis.invalidDate"));
       return;
     }
 
@@ -165,19 +169,20 @@ export default function DevisScreen({ navigation, route }) {
 
       const { data } = await api.post("/devis", payload);
       Alert.alert(
-        "Devis envoyé",
-        `Votre demande #${data.id} a été transmise. Notre équipe vous répondra sous 48h.`,
+        t("devis.sentTitle"),
+        t("devis.sentMessage", { id: data.id }),
       );
       setForm({ surface: "", ville: "", adresse: "", date_souhaitee: "" });
       setPhotos([]);
       await loadMesDevis();
+      setTab("mine");
     } catch (e) {
       const details = e.response?.data?.details;
       const msg =
         details?.map((d) => `${d.champ}: ${d.message}`).join("\n") ||
         e.response?.data?.error ||
-        "Envoi impossible";
-      Alert.alert("Erreur", msg);
+        t("devis.sendFailed");
+      Alert.alert(t("common.error"), msg);
     } finally {
       setLoading(false);
     }
@@ -202,255 +207,265 @@ export default function DevisScreen({ navigation, route }) {
     try {
       await telechargerDevisPDF(id);
     } catch (e) {
-      Alert.alert("Erreur", e.message || "Impossible d'ouvrir le PDF");
+      Alert.alert(t("common.error"), e.message || t("devis.pdfError"));
     } finally {
       setPdfLoading(null);
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>📄 Demande de devis</Text>
+    <Screen contentStyle={styles.content}>
+      <AppHeader
+        showBell
+        onBell={() => navigation?.navigate("Notifications")}
+      />
+      <SectionHeader
+        icon="document-text"
+        tone="green"
+        title={t("devis.title")}
+        subtitle={t("devis.subtitle")}
+      />
 
-      {error ? <Text style={styles.error}>⚠️ {error}</Text> : null}
+      <SegmentedTabs
+        style={styles.tabs}
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { key: "new", label: t("devis.newTab") },
+          { key: "mine", label: t("devis.mineTab") },
+        ]}
+      />
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Surface (m²)</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="decimal-pad"
-          value={form.surface}
-          onChangeText={(v) => setForm({ ...form, surface: v })}
-          placeholder="Ex: 96"
-        />
+      {tab === "new" ? (
+        <Card>
+          {error ? <Text style={styles.error}>⚠️ {error}</Text> : null}
 
-        <Text style={styles.label}>Ville</Text>
-        <TextInput
-          style={styles.input}
-          value={form.ville}
-          onChangeText={(v) => setForm({ ...form, ville: v })}
-          placeholder="Douala"
-        />
+          <Field
+            label={t("devis.surface")}
+            icon="resize-outline"
+            value={form.surface}
+            onChangeText={(v) => setForm({ ...form, surface: v })}
+            keyboardType="decimal-pad"
+            placeholder="96"
+          />
+          <Field
+            label={t("devis.city")}
+            icon="business-outline"
+            value={form.ville}
+            onChangeText={(v) => setForm({ ...form, ville: v })}
+            placeholder="Douala"
+          />
+          <Field
+            label={t("devis.address")}
+            icon="location-outline"
+            value={form.adresse}
+            onChangeText={(v) => setForm({ ...form, adresse: v })}
+            placeholder="Quartier, rue, repère"
+          />
+          <Field
+            label={t("devis.date")}
+            icon="calendar-outline"
+            value={form.date_souhaitee}
+            onChangeText={(v) => setForm({ ...form, date_souhaitee: v })}
+            placeholder="2026-10-15"
+          />
 
-        <Text style={styles.label}>Adresse du chantier</Text>
-        <TextInput
-          style={styles.input}
-          value={form.adresse}
-          onChangeText={(v) => setForm({ ...form, adresse: v })}
-          placeholder="Quartier, rue, repère"
-        />
-
-        <Text style={styles.label}>Date souhaitée (optionnel, AAAA-MM-JJ)</Text>
-        <TextInput
-          style={styles.input}
-          value={form.date_souhaitee}
-          onChangeText={(v) => setForm({ ...form, date_souhaitee: v })}
-          placeholder="2026-10-15"
-        />
-
-        <Text style={styles.label}>Produit souhaité</Text>
-        <View style={styles.chipRow}>
-          {produits.map((p) => (
-            <TouchableOpacity
-              key={p.id}
-              style={[styles.chip, produitId === p.id && styles.chipActive]}
-              onPress={() => setProduitId(p.id)}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  produitId === p.id && styles.chipTextActive,
-                ]}
-              >
-                {p.nom} ({p.epaisseur})
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.label}>Photos du chantier (optionnel, max 5)</Text>
-        <View style={styles.photoGrid}>
-          {photos.map((asset, i) => (
-            <TouchableOpacity
-              key={`${asset.uri}-${i}`}
-              onPress={() => removePhoto(i)}
-            >
-              <Image source={{ uri: asset.uri }} style={styles.photo} />
-              <Text style={styles.removePhoto}>✕</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TouchableOpacity
-          style={[styles.photoBtn, uploading && styles.disabled]}
-          onPress={addPhotos}
-          disabled={uploading}
-        >
-          <Text style={styles.white}>
-            {uploading ? "Envoi des photos..." : "+ Ajouter des photos"}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.primary, loading && styles.disabled]}
-          onPress={submit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
+          <Text style={styles.label}>{t("devis.product")}</Text>
+          {produits.length === 0 ? (
+            <Text style={styles.hint}>{t("calculator.noProduct")}</Text>
           ) : (
-            <Text style={styles.white}>Envoyer la demande</Text>
+            <View style={styles.pills}>
+              {produits.map((p) => (
+                <FilterPill
+                  key={p.id}
+                  label={`${p.nom}${p.epaisseur ? ` (${p.epaisseur})` : ""}`}
+                  active={produitId === p.id}
+                  onPress={() => setProduitId(p.id)}
+                  style={styles.pill}
+                />
+              ))}
+            </View>
           )}
-        </TouchableOpacity>
-      </View>
 
-      <Text style={styles.sectionTitle}>Mes devis</Text>
-      {listError ? <Text style={styles.error}>⚠️ {listError}</Text> : null}
-      {!listError && devisList.length === 0 && (
-        <Text style={styles.empty}>Aucune demande de devis</Text>
+          <Text style={styles.label}>{t("devis.photos")}</Text>
+          {photos.length > 0 ? (
+            <View style={styles.photoGrid}>
+              {photos.map((asset, i) => (
+                <TouchableOpacity
+                  key={`${asset.uri}-${i}`}
+                  onPress={() => removePhoto(i)}
+                  activeOpacity={0.85}
+                  style={styles.photoWrap}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("common.cancel")}
+                >
+                  <Image source={{ uri: asset.uri }} style={styles.photo} />
+                  <View style={styles.photoRemove}>
+                    <Ionicons name="close" size={12} color="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
+          <Button
+            label={uploading ? t("devis.uploading") : t("devis.addPhotos")}
+            icon="camera-outline"
+            variant="soft"
+            small
+            onPress={addPhotos}
+            disabled={uploading}
+            style={styles.photoBtn}
+          />
+
+          <Button
+            label={t("devis.submit")}
+            icon="send-outline"
+            onPress={submit}
+            loading={loading}
+            disabled={loading}
+            style={styles.submit}
+          />
+        </Card>
+      ) : (
+        <>
+          {listError ? <Text style={styles.error}>⚠️ {listError}</Text> : null}
+
+          {!listError && devisList.length === 0 ? (
+            <EmptyState
+              icon="document-outline"
+              title={t("devis.mineTab")}
+              message={t("devis.empty")}
+            />
+          ) : (
+            devisList.map((d) => (
+              <Card key={d.id} style={styles.devisCard}>
+                <View style={styles.devisHeader}>
+                  <Text style={styles.devisTitle} numberOfLines={1}>
+                    {t("devis.cardTitle", { id: d.id, ville: d.ville || "—" })}
+                  </Text>
+                  <StatusPill status={d.statut} small />
+                </View>
+                <Text style={styles.meta}>
+                  {d.surface
+                    ? `${d.surface} m²`
+                    : t("devis.surfaceUnknown")}
+                </Text>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>{t("devis.total")}</Text>
+                  <Text style={styles.totalValue}>
+                    {d.total_final !== null && d.total_final !== undefined
+                      ? formatXAF(d.total_final)
+                      : t("devis.pendingValidation")}
+                  </Text>
+                </View>
+
+                <View style={styles.actions}>
+                  {canPay(d) ? (
+                    <Button
+                      label={t("devis.pay")}
+                      icon="card-outline"
+                      small
+                      onPress={() => payer(d)}
+                      style={styles.actionItem}
+                    />
+                  ) : null}
+                  <Button
+                    label={
+                      pdfLoading === d.id ? t("devis.pdfLoading") : t("devis.pdf")
+                    }
+                    icon="download-outline"
+                    variant="soft"
+                    small
+                    onPress={() => telechargerPDF(d.id)}
+                    loading={pdfLoading === d.id}
+                    disabled={pdfLoading === d.id}
+                    style={styles.actionItem}
+                  />
+                </View>
+              </Card>
+            ))
+          )}
+        </>
       )}
-
-      {devisList.map((d) => (
-        <View key={d.id} style={styles.card}>
-          <Text style={styles.devisTitle}>
-            Devis #{d.id} — {d.ville || "—"}
-          </Text>
-          <Text style={styles.meta}>
-            {d.surface ? `${d.surface} m²` : "Surface —"}
-          </Text>
-          <Text style={styles.meta}>
-            Total :{" "}
-            {d.total_final !== null && d.total_final !== undefined
-              ? `${Number(d.total_final).toLocaleString()} FCFA`
-              : "en attente de validation"}
-          </Text>
-          <Text
-            style={[
-              styles.statut,
-              { color: STATUT_COLORS[d.statut] || "#6b7280" },
-            ]}
-          >
-            Statut : {d.statut}
-          </Text>
-
-          <View style={styles.actions}>
-            {canPay(d) && (
-              <TouchableOpacity style={styles.payBtn} onPress={() => payer(d)}>
-                <Text style={styles.white}>Payer</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.pdfBtn, pdfLoading === d.id && styles.disabled]}
-              onPress={() => telechargerPDF(d.id)}
-              disabled={pdfLoading === d.id}
-            >
-              <Text style={styles.white}>
-                {pdfLoading === d.id ? "PDF..." : "PDF"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ))}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#92400e",
-    marginBottom: 16,
-  },
+  content: { paddingBottom: SPACING.xxl },
+  tabs: { marginBottom: 18 },
   error: {
-    color: "#b91c1c",
-    backgroundColor: "#fee2e2",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
+    color: COLORS.red,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
     marginBottom: 12,
   },
   label: {
+    color: COLORS.ink,
+    fontFamily: FONTS.semiBold,
+    fontSize: 14,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  hint: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
     fontSize: 13,
-    fontWeight: "600",
-    color: "#374151",
-    marginTop: 8,
-    marginBottom: 4,
+    marginBottom: 10,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: "#fff",
-  },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
-  chip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: "#f3f4f6",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  chipActive: { backgroundColor: "#b45309", borderColor: "#b45309" },
-  chipText: { fontSize: 12, color: "#374151", fontWeight: "600" },
-  chipTextActive: { color: "#fff" },
-  photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  photo: { width: 84, height: 84, borderRadius: 8, backgroundColor: "#eee" },
-  removePhoto: {
+  pills: { flexDirection: "row", flexWrap: "wrap", marginBottom: 6 },
+  pill: { marginRight: 8, marginBottom: 8 },
+  photoGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 10 },
+  photoWrap: { marginRight: 10, marginBottom: 10 },
+  photo: { width: 78, height: 78, borderRadius: RADII.sm },
+  photoRemove: {
     position: "absolute",
-    top: 2,
-    right: 6,
-    color: "#dc2626",
-    fontWeight: "800",
-  },
-  photoBtn: {
-    backgroundColor: "#0ea5e9",
-    padding: 12,
-    borderRadius: 8,
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.red,
     alignItems: "center",
-    marginTop: 10,
+    justifyContent: "center",
   },
-  primary: {
-    backgroundColor: "#b45309",
-    padding: 14,
-    borderRadius: 8,
+  photoBtn: { alignSelf: "flex-start", marginBottom: 18 },
+  submit: { marginTop: 2 },
+  devisCard: { marginBottom: 12 },
+  devisHeader: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 14,
+    justifyContent: "space-between",
   },
-  disabled: { opacity: 0.6 },
-  white: { color: "#fff", fontWeight: "700" },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#374151",
+  devisTitle: {
+    flex: 1,
+    color: COLORS.ink,
+    fontFamily: FONTS.bold,
+    fontSize: 15,
+    marginRight: 10,
+  },
+  meta: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    marginTop: 6,
+  },
+  totalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginTop: 8,
-    marginBottom: 8,
   },
-  empty: { color: "#6b7280", textAlign: "center", padding: 12 },
-  devisTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  meta: { fontSize: 14, color: "#6b7280", marginTop: 4 },
-  statut: { fontSize: 13, fontWeight: "700", marginTop: 6 },
-  actions: { flexDirection: "row", gap: 8, marginTop: 10 },
-  payBtn: {
-    flex: 1,
-    backgroundColor: "#16a34a",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
+  totalLabel: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
   },
-  pdfBtn: {
-    flex: 1,
-    backgroundColor: "#b45309",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
+  totalValue: {
+    color: COLORS.primary,
+    fontFamily: FONTS.bold,
+    fontSize: 16,
   },
+  actions: { flexDirection: "row", marginTop: 14 },
+  actionItem: { flex: 1, marginRight: 8 },
 });
