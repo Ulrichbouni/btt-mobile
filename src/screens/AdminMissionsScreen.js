@@ -1,16 +1,20 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet, Text, View, Alert } from "react-native";
 
+import {
+  AppHeader,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  FilterPill,
+  Screen,
+  SectionHeader,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
+import { COLORS, FONTS, SPACING } from "../theme/theme";
 
 const STATUTS = ["assignee", "en_cours", "terminee"];
 
@@ -21,6 +25,7 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const toDateISO = (yyyyMmDd) => `${yyyyMmDd}T12:00:00.000Z`;
 
 export default function AdminMissionsScreen() {
+  const { t } = useI18n();
   const [missions, setMissions] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -175,281 +180,227 @@ export default function AdminMissionsScreen() {
     );
   };
 
+  const statutLabel = (s) =>
+    s === "tous" ? t("common.all") : t(`statuses.${s}`);
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Missions</Text>
+    <Screen scroll contentStyle={styles.content}>
+      <AppHeader title={t("admin.missions")} showBell onBell={() => {}} />
+
+      <SectionHeader
+        icon="briefcase-outline"
+        tone="green"
+        title={t("admin.missions")}
+        subtitle={t("admin.missionCount", { n: missions.length })}
+      />
 
       {/* --- Formulaire création / édition --- */}
-      <View style={styles.form}>
-        <Text style={styles.formTitle}>
-          {editingId ? `Modifier la mission #${editingId}` : "Nouvelle mission"}
-        </Text>
+      <Card style={styles.formCard} padding={16}>
+        <SectionHeader
+          icon="add-circle-outline"
+          tone="blue"
+          title={editingId ? `Mission #${editingId}` : t("admin.newMission")}
+        />
 
         {!editingId && (
-          <TextInput
-            style={styles.input}
-            placeholder="ID du devis *"
+          <Field
+            label={t("admin.devisId")}
+            placeholder={t("admin.devisIdPlaceholder")}
+            icon="document-text-outline"
             keyboardType="numeric"
             value={form.devis_id}
-            onChangeText={(v) => setForm({ ...form, devis_id: v })}
+            onChangeText={(v) => setForm((f) => ({ ...f, devis_id: v }))}
           />
         )}
 
-        <Text style={styles.label}>Technicien :</Text>
+        <Text style={styles.label}>{t("admin.technicien")}</Text>
         {users.length === 0 ? (
-          <Text style={styles.helper}>Aucun technicien disponible.</Text>
+          <Text style={styles.helper}>{t("admin.noTechniciens")}</Text>
         ) : (
           <View style={styles.chipRow}>
             {users.map((u) => (
-              <TouchableOpacity
+              <FilterPill
                 key={u.id}
-                style={[
-                  styles.chip,
-                  form.technicien_id === u.id && styles.chipActive,
-                ]}
-                onPress={() => setForm({ ...form, technicien_id: u.id })}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    form.technicien_id === u.id && styles.chipTextActive,
-                  ]}
-                >
-                  {u.nom}
-                </Text>
-              </TouchableOpacity>
+                label={u.nom}
+                active={form.technicien_id === u.id}
+                onPress={() => setForm((f) => ({ ...f, technicien_id: u.id }))}
+              />
             ))}
           </View>
         )}
 
-        <Text style={styles.label}>Date de visite :</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="YYYY-MM-DD"
+        <Field
+          label={t("admin.dateVisite")}
+          placeholder={t("admin.dateVisitePlaceholder")}
+          icon="calendar-outline"
           value={form.date_visite}
-          onChangeText={(v) => setForm({ ...form, date_visite: v })}
+          onChangeText={(v) => setForm((f) => ({ ...f, date_visite: v }))}
         />
 
         {editingId && (
           <>
-            <Text style={styles.label}>Statut :</Text>
+            <Text style={styles.label}>{t("admin.statut")}</Text>
             <View style={styles.chipRow}>
               {STATUTS.map((s) => (
-                <TouchableOpacity
+                <FilterPill
                   key={s}
-                  style={[styles.chip, form.statut === s && styles.chipActive]}
-                  onPress={() => setForm({ ...form, statut: s })}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      form.statut === s && styles.chipTextActive,
-                    ]}
-                  >
-                    {s}
-                  </Text>
-                </TouchableOpacity>
+                  label={t(`statuses.${s}`)}
+                  active={form.statut === s}
+                  onPress={() => setForm((f) => ({ ...f, statut: s }))}
+                />
               ))}
             </View>
           </>
         )}
 
-        <TouchableOpacity
-          style={[styles.primary, submitting && styles.disabled]}
-          onPress={submit}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.white}>
-              {editingId ? "Enregistrer" : "Attribuer"}
-            </Text>
+        <View style={styles.buttonRow}>
+          <Button
+            label={editingId ? t("admin.save") : t("admin.assign")}
+            icon={editingId ? "checkmark-outline" : "add-outline"}
+            variant="green"
+            onPress={submit}
+            loading={submitting}
+            disabled={submitting}
+            style={styles.flexBtn}
+          />
+          {editingId && (
+            <Button
+              label={t("admin.cancel")}
+              icon="close-outline"
+              variant="outline"
+              onPress={resetForm}
+              style={styles.flexBtn}
+            />
           )}
-        </TouchableOpacity>
-
-        {editingId && (
-          <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
-            <Text style={styles.white}>Annuler</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      </Card>
 
       {/* --- Filtres --- */}
-      <View style={styles.filters}>
+      <View style={styles.filterRow}>
         {["tous", ...STATUTS].map((s) => (
-          <TouchableOpacity
+          <FilterPill
             key={s}
-            style={[styles.filterBtn, filter === s && styles.filterBtnActive]}
+            label={statutLabel(s)}
+            active={filter === s}
             onPress={() => setFilter(s)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                filter === s && styles.filterTextActive,
-              ]}
-            >
-              {s}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </View>
 
       {/* --- Liste --- */}
       {loading ? (
-        <ActivityIndicator size="large" color="#b45309" />
+        <EmptyState
+          icon="sync-outline"
+          title={t("common.loading")}
+          message={t("admin.loadingMissions")}
+        />
       ) : filteredMissions.length === 0 ? (
-        <Text style={styles.empty}>Aucune mission pour ce filtre.</Text>
+        <EmptyState
+          icon="briefcase-outline"
+          title={t("admin.empty")}
+          message={filter === "tous" ? t("admin.noMissions") : t("admin.emptyFilter")}
+        />
       ) : (
         filteredMissions.map((m) => (
-          <View style={styles.card} key={m.id}>
-            <Text style={styles.name}>Mission #{m.id}</Text>
-            <Text style={styles.meta}>Client : {m.client_nom || "—"}</Text>
+          <Card key={m.id} style={styles.card} padding={16}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Mission #{m.id}</Text>
+              <StatusPill status={m.statut} />
+            </View>
             <Text style={styles.meta}>
-              Technicien : {m.technicien_nom || "—"}
+              {t("admin.client")} : {m.client_nom || t("admin.unknown")}
             </Text>
-            <Text style={styles.meta}>Statut : {m.statut || "—"}</Text>
+            <Text style={styles.meta}>
+              {t("admin.technicien")} : {m.technicien_nom || t("admin.unknown")}
+            </Text>
             {m.date_visite && (
               <Text style={styles.meta}>
-                Date : {new Date(m.date_visite).toLocaleDateString()}
+                {t("admin.dateVisite")} :{" "}
+                {new Date(m.date_visite).toLocaleDateString()}
               </Text>
             )}
 
             <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={styles.editBtn}
+              <Button
+                label={t("admin.edit")}
+                icon="pencil-outline"
+                variant="soft"
+                small
                 onPress={() => startEdit(m)}
-              >
-                <Text style={styles.white}>Modifier</Text>
-              </TouchableOpacity>
-
+              />
               {m.statut !== "terminee" && (
-                <TouchableOpacity
-                  style={styles.validateBtn}
+                <Button
+                  label={t("admin.validate")}
+                  icon="checkmark-circle-outline"
+                  variant="green"
+                  small
                   onPress={() => validerMesures(m.id)}
-                >
-                  <Text style={styles.white}>Valider</Text>
-                </TouchableOpacity>
+                />
               )}
-
-              <TouchableOpacity
-                style={styles.danger}
+              <Button
+                label={t("admin.delete")}
+                icon="trash-outline"
+                variant="danger"
+                small
                 onPress={() => remove(m.id)}
-              >
-                <Text style={styles.white}>Suppr.</Text>
-              </TouchableOpacity>
+              />
             </View>
-          </View>
+          </Card>
         ))
       )}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#92400e",
-    marginBottom: 16,
-  },
-  form: {
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  formTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#92400e",
-    marginBottom: 10,
-  },
+  content: { paddingBottom: SPACING.xxl },
+  formCard: { marginBottom: SPACING.md },
   label: {
+    color: COLORS.ink,
+    fontFamily: FONTS.semiBold,
     fontSize: 13,
-    fontWeight: "600",
-    color: "#374151",
-    marginTop: 8,
-    marginBottom: 4,
+    marginBottom: 8,
+    marginTop: 2,
   },
-  helper: { fontSize: 12, color: "#6b7280", marginBottom: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 8,
-    padding: 11,
-    marginBottom: 9,
-    backgroundColor: "#fff",
+  helper: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    marginBottom: 8,
   },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 },
-  chip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: "#f3f4f6",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 14,
   },
-  chipActive: { backgroundColor: "#b45309", borderColor: "#b45309" },
-  chipText: { fontSize: 12, color: "#374151", fontWeight: "600" },
-  chipTextActive: { color: "#fff" },
-  primary: {
-    backgroundColor: "#b45309",
-    padding: 11,
-    borderRadius: 8,
+  buttonRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+  flexBtn: { flex: 1 },
+  filterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 6,
+    marginTop: 2,
+  },
+  card: { marginBottom: 12 },
+  cardHeader: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
   },
-  cancelBtn: {
-    backgroundColor: "#6b7280",
-    padding: 11,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
+  cardTitle: {
+    color: COLORS.ink,
+    fontFamily: FONTS.bold,
+    fontSize: 16,
+    flexShrink: 1,
   },
-  disabled: { opacity: 0.6 },
-  filters: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  filterBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
+  meta: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 13,
+    marginBottom: 2,
   },
-  filterBtnActive: { backgroundColor: "#b45309", borderColor: "#b45309" },
-  filterText: { fontSize: 12, fontWeight: "600", color: "#374151" },
-  filterTextActive: { color: "#fff" },
-  card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  name: { fontSize: 17, fontWeight: "700", marginBottom: 5 },
-  meta: { color: "#6b7280", marginBottom: 2 },
-  actionRow: { flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" },
-  editBtn: {
-    backgroundColor: "#0ea5e9",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    paddingHorizontal: 14,
-  },
-  validateBtn: {
-    backgroundColor: "#0f766e",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    paddingHorizontal: 14,
-  },
-  danger: {
-    backgroundColor: "#dc2626",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    paddingHorizontal: 14,
-  },
-  white: { color: "#fff", fontWeight: "700" },
-  empty: { textAlign: "center", color: "#6b7280", marginTop: 20 },
+  actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
 });

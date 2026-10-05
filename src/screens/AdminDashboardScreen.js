@@ -1,80 +1,73 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const shortcuts = [
-  { label: "Utilisateurs", route: "AdminUsers", icon: "👥", color: "#0ea5e9" },
-  { label: "Produits", route: "AdminProducts", icon: "📦", color: "#f59e0b" },
-  { label: "Missions", route: "AdminMissions", icon: "📋", color: "#0f766e" },
-  { label: "Devis", route: "AdminDevis", icon: "📄", color: "#8b5cf6" },
-  { label: "Chantiers", route: "AdminChantiers", icon: "🏗️", color: "#dc2626" },
-  { label: "OTP (2FA)", route: "OTPSetup", icon: "🔐", color: "#6b7280" },
+import { AppHeader, IconTile, Screen, SectionTitle } from "../components";
+import { useI18n } from "../i18n";
+import { COLORS, FONTS, SPACING } from "../theme/theme";
+
+// Raccourcis admin : toutes les fonctions du back-office, dans l'ordre du
+// plan (utilisateurs, produits, missions, devis, chantiers, 2FA).
+const SHORTCUTS = [
+  { key: "users", label: "Utilisateurs", route: "AdminUsers", icon: "people-outline", tone: "blue" },
+  { key: "products", label: "Produits", route: "AdminProducts", icon: "grid-outline", tone: "green" },
+  { key: "missions", label: "Missions", route: "AdminMissions", icon: "checkmark-circle-outline", tone: "yellow" },
+  { key: "devis", label: "Devis", route: "AdminDevis", icon: "document-text-outline", tone: "purple" },
+  { key: "chantiers", label: "Chantiers", route: "AdminChantiers", icon: "construct-outline", tone: "brown" },
+  { key: "otp", label: "2FA", route: "OTPSetup", icon: "lock-closed-outline", tone: "beige" },
 ];
 
 export default function AdminDashboardScreen({ navigation }) {
+  const { t } = useI18n();
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Espace Admin</Text>
-        <Text style={styles.subtitle}>Gestion complète de la plateforme</Text>
-      </View>
+    <Screen scroll contentStyle={styles.content}>
+      <AppHeader title={t("admin.dashboard")} showBell onBell={() => {}} />
+
+      <SectionTitle title={t("admin.dashboard")} style={styles.sectionTop} />
 
       <View style={styles.grid}>
-        {shortcuts.map((s) => (
+        {SHORTCUTS.map((s) => (
           <TouchableOpacity
-            key={s.route}
-            style={[
-              styles.card,
-              { borderTopColor: s.color, borderTopWidth: 4 },
-            ]}
+            key={s.key}
+            style={styles.gridItem}
+            activeOpacity={0.85}
             onPress={() => navigation.navigate(s.route)}
+            accessibilityRole="button"
           >
-            <Text style={styles.icon}>{s.icon}</Text>
-            <Text style={styles.cardLabel}>{s.label}</Text>
+            <IconTile icon={s.icon} tone={s.tone} size={52} />
+            <Text style={styles.gridLabel} numberOfLines={1}>
+              {s.label}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  header: {
-    backgroundColor: "#fff7ed",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-  },
-  title: { fontSize: 26, fontWeight: "800", color: "#78350f" },
-  subtitle: { fontSize: 13, color: "#92400e", marginTop: 4 },
+  content: { paddingBottom: SPACING.xxl },
+  sectionTop: { marginTop: 20 },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
-  card: {
+  gridItem: {
     width: "48%",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 14,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: "#5C4632",
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
   },
-  icon: { fontSize: 32, marginBottom: 8 },
-  cardLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#374151",
-    textAlign: "center",
+  gridLabel: {
+    color: COLORS.ink,
+    fontFamily: FONTS.bold,
+    fontSize: 15,
+    marginTop: 12,
   },
 });

@@ -1,36 +1,29 @@
 import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, View, Alert } from "react-native";
+
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
-
+  AppHeader,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Screen,
+  SectionHeader,
+  SegmentedTabs,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
-
-const emptyForm = {
-  nom: "",
-  nom_en: "",
-  epaisseur: "",
-  categorie: "",
-  application: "",
-  application_en: "",
-  prix_ttc: "",
-  poids_unite: "",
-  qte_conteneur: "",
-  statut_stock: "En stock",
-};
+import { COLORS, FONTS, SPACING, RADII } from "../theme/theme";
 
 export default function AdminProductsScreen() {
+  const { t } = useI18n();
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [tab, setTab] = useState("new");
 
   const loadProducts = async () => {
     setLoading(true);
@@ -156,211 +149,202 @@ export default function AdminProductsScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Gestion produits</Text>
+    <Screen contentStyle={styles.content}>
+      <AppHeader title={t("admin.products")} showBell onBell={() => {}} />
 
-      <View style={styles.formCard}>
-        <Text style={styles.formTitle}>
-          {editingId ? `Modifier le produit #${editingId}` : "Nouveau produit"}
-        </Text>
+      <SectionHeader
+        icon="grid-outline"
+        tone="green"
+        title={t("admin.products")}
+        subtitle={t("admin.productCount", { n: products.length })}
+      />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Nom *"
-          value={form.nom}
-          onChangeText={(v) => updateField("nom", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Nom (anglais)"
-          value={form.nom_en}
-          onChangeText={(v) => updateField("nom_en", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Épaisseur (ex: 8mm) *"
-          value={form.epaisseur}
-          onChangeText={(v) => updateField("epaisseur", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Catégorie *"
-          value={form.categorie}
-          onChangeText={(v) => updateField("categorie", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Application"
-          value={form.application}
-          onChangeText={(v) => updateField("application", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Application (anglais)"
-          value={form.application_en}
-          onChangeText={(v) => updateField("application_en", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Prix TTC (FCFA) *"
-          keyboardType="numeric"
-          value={form.prix_ttc}
-          onChangeText={(v) => updateField("prix_ttc", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Poids unité (kg)"
-          keyboardType="numeric"
-          value={form.poids_unite}
-          onChangeText={(v) => updateField("poids_unite", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Quantité conteneur"
-          keyboardType="numeric"
-          value={form.qte_conteneur}
-          onChangeText={(v) => updateField("qte_conteneur", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Statut stock"
-          value={form.statut_stock}
-          onChangeText={(v) => updateField("statut_stock", v)}
-        />
+      <SegmentedTabs
+        tabs={[{
+          key: "new",
+          label: t("admin.newProduct"),
+        }, {
+          key: "list",
+          label: t("admin.productList"),
+        }]}
+        value={tab}
+        onChange={setTab}
+      />
 
-        <TouchableOpacity
-          style={[styles.submitButton, submitting && styles.buttonDisabled]}
-          onPress={submit}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>
-              {editingId ? "Modifier le produit" : "Créer le produit"}
-            </Text>
-          )}
-        </TouchableOpacity>
+      {tab === "new" ? (
+        <Card style={styles.formCard} padding={16}>
+          <SectionHeader icon="pencil-outline" tone="green" title="Nouveau produit" />
 
-        {editingId && (
-          <TouchableOpacity style={styles.cancelButton} onPress={cancelEdit}>
-            <Text style={styles.buttonText}>Annuler l'édition</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+          <Field
+            label={t("admin.prod.nom")}
+            placeholder={t("admin.prod.nomPlaceholder")}
+            value={form.nom}
+            onChangeText={(v) => updateField("nom", v)}
+          />
+          <Field
+            label={t("admin.prod.nomEn")}
+            placeholder={t("admin.prod.nomEnPlaceholder")}
+            value={form.nom_en}
+            onChangeText={(v) => updateField("nom_en", v)}
+          />
+          <Field
+            label={t("admin.prod.epaisseur")}
+            placeholder={t("admin.prod.epaisseurPlaceholder")}
+            value={form.epaisseur}
+            onChangeText={(v) => updateField("epaisseur", v)}
+          />
+          <Field
+            label={t("admin.prod.categorie")}
+            placeholder={t("admin.prod.categoriePlaceholder")}
+            value={form.categorie}
+            onChangeText={(v) => updateField("categorie", v)}
+          />
+          <Field
+            label={t("admin.prod.application")}
+            placeholder={t("admin.prod.applicationPlaceholder")}
+            value={form.application}
+            onChangeText={(v) => updateField("application", v)}
+          />
+          <Field
+            label={t("admin.prod.applicationEn")}
+            placeholder={t("admin.prod.applicationEnPlaceholder")}
+            value={form.application_en}
+            onChangeText={(v) => updateField("application_en", v)}
+          />
+          <Field
+            label={t("admin.prod.prixTtc")}
+            placeholder={t("admin.prod.prixTtcPlaceholder")}
+            value={form.prix_ttc}
+            onChangeText={(v) => updateField("prix_ttc", v)}
+            keyboardType="numeric"
+          />
+          <Field
+            label={t("admin.prod.poidsUnite")}
+            placeholder={t("admin.prod.poidsUnitePlaceholder")}
+            value={form.poids_unite}
+            onChangeText={(v) => updateField("poids_unite", v)}
+            keyboardType="numeric"
+          />
+          <Field
+            label={t("admin.prod.qteConteneur")}
+            placeholder={t("admin.prod.qteConteneurPlaceholder")}
+            value={form.qte_conteneur}
+            onChangeText={(v) => updateField("qte_conteneur", v)}
+            keyboardType="numeric"
+          />
+          <Field
+            label={t("admin.prod.statutStock")}
+            placeholder={t("admin.prod.statutStockPlaceholder")}
+            value={form.statut_stock}
+            onChangeText={(v) => updateField("statut_stock", v)}
+          />
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#b45309" />
-      ) : products.length === 0 ? (
-        <Text style={styles.empty}>Aucun produit pour le moment.</Text>
-      ) : (
-        products.map((product) => (
-          <View key={product.id} style={styles.productCard}>
-            <Text style={styles.productName}>{product.nom}</Text>
-            <Text style={styles.productMeta}>
-              Catégorie : {product.categorie}
-            </Text>
-            <Text style={styles.productMeta}>
-              Prix :{" "}
-              {product.prix_ttc != null
-                ? Number(product.prix_ttc).toLocaleString()
-                : "—"}{" "}
-              FCFA
-            </Text>
-            <Text style={styles.productMeta}>
-              Stock : {product.statut_stock || "—"}
-            </Text>
-
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => editProduct(product)}
-              >
-                <Text style={styles.buttonText}>Modifier</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => deleteProduct(product.id)}
-              >
-                <Text style={styles.buttonText}>Supprimer</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.buttonRow}>
+            <Button
+              label={t("admin.save")}
+              icon="checkmark-outline"
+              variant="green"
+              onPress={submit}
+              loading={submitting}
+              disabled={submitting}
+              style={styles.saveBtn}
+            />
+<Button
+              label={t("admin.cancel")}
+              icon="close-outline"
+              variant="outline"
+              onPress={cancelEdit}
+              style={styles.cancelBtn}
+            />
           </View>
-        ))
+        </Card>
+      ) : (
+        products.length === 0 ? (
+          <EmptyState
+            icon="cube-outline"
+            title={t("admin.empty")}
+            message={t("admin.noProducts")}
+          />
+        ) : (
+          products.map((product) => (
+            <Card key={product.id} style={styles.productCard} padding={16}>
+              <View style={styles.productHeader}>
+                <Text style={styles.productName}>{product.nom}</Text>
+                <StatusPill
+                  status={product.statut_stock || "en_stock"}
+                  small
+                />
+              </View>
+              <Text style={styles.productMeta}>
+                {t("admin.prod.categorie")} : {product.categorie}
+              </Text>
+              <Text style={styles.productMeta}>
+                {t("admin.prod.epaisseur")} : {product.epaisseur}
+              </Text>
+              <Text style={styles.productMeta}>
+                {t("admin.prod.prix")} : {product.prix_ttc != null
+                  ? Number(product.prix_ttc).toLocaleString()
+                  : "—"} FCFA
+              </Text>
+
+              <View style={styles.actionRow}>
+<Button
+                  icon="pencil-outline"
+                  label={t("admin.edit")}
+                  size={20}
+                  compact
+                  variant="blue"
+                  onPress={() => editProduct(product)}
+                />
+<Button
+                  icon="trash-outline"
+                  label={t("admin.delete")}
+                  size={20}
+                  compact
+                  variant="danger"
+                  onPress={() => deleteProduct(product.id)}
+                />
+              </View>
+            </Card>
+          ))
+        )
       )}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#92400e",
-    marginBottom: 16,
+  content: { paddingBottom: SPACING.xxl },
+  formCard: { backgroundColor: COLORS.primarySoft, borderRadius: RADII.lg },
+  buttonRow: {
+    flexDirection: "row",
+    gap: SPACING.md,
+    marginTop: SPACING.md,
   },
-  formCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#f3e8d4",
+  saveBtn: { flex: 1, marginRight: SPACING.md },
+  cancelBtn: { flex: 1 },
+  productHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: SPACING.sm,
   },
-  formTitle: {
+  productName: {
+    color: COLORS.ink,
+    fontFamily: FONTS.bold,
     fontSize: 16,
-    fontWeight: "700",
-    color: "#92400e",
-    marginBottom: 10,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-    backgroundColor: "#fff",
+  productMeta: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    marginTop: 4,
   },
-  submitButton: {
-    backgroundColor: "#b45309",
-    borderRadius: 8,
-    padding: 12,
-    alignItems: "center",
-  },
-  cancelButton: {
-    backgroundColor: "#6b7280",
-    borderRadius: 8,
-    padding: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonDisabled: { opacity: 0.6 },
-  secondaryButton: {
-    backgroundColor: "#0f766e",
-    borderRadius: 8,
-    padding: 10,
+  actionRow: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
     flex: 1,
-    alignItems: "center",
+    justifyContent: "flex-end",
   },
-  deleteButton: {
-    backgroundColor: "#dc2626",
-    borderRadius: 8,
-    padding: 10,
-    flex: 1,
-    alignItems: "center",
-  },
-  buttonText: { color: "#fff", fontWeight: "700" },
-  productCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#f3e8d4",
-  },
-  productName: { fontSize: 17, fontWeight: "700", marginBottom: 4 },
-  productMeta: { color: "#6b7280", marginBottom: 2 },
-  actionRow: { flexDirection: "row", gap: 8, marginTop: 10 },
-  empty: { textAlign: "center", color: "#6b7280", marginTop: 20 },
 });

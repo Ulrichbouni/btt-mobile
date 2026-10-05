@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { StyleSheet, Text, View, Alert } from "react-native";
 
+import {
+  AppHeader,
+  Button,
+  Card,
+  EmptyState,
+  Screen,
+  SectionHeader,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
 import { ETAPES, progressionPourcent } from "../constants/etapes";
+import { COLORS, FONTS, SPACING, RADII } from "../theme/theme";
 
 export default function AdminChantiersScreen({ navigation, user }) {
+  const { t } = useI18n();
   const [chantiers, setChantiers] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -33,14 +37,10 @@ export default function AdminChantiersScreen({ navigation, user }) {
     return unsubscribe;
   }, [navigation]);
 
-  // Seuls l'admin et le technicien assigné peuvent faire avancer le
-  // chantier (mêmes règles que ChantierDetailScreen).
+  // Seuls l'admin et le technicien assigné peuvent faire avancer le chantier.
   const canManage = (chantier) => {
     if (user?.role === "admin") return true;
-    return (
-      user?.role === "technicien" &&
-      chantier.technicien_id === user?.id
-    );
+    return user?.role === "technicien" && chantier.technicien_id === user?.id;
   };
 
   const avancer = (chantier) => {
@@ -71,128 +71,195 @@ export default function AdminChantiersScreen({ navigation, user }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Chantiers</Text>
+    <Screen contentStyle={styles.content}>
+      <AppHeader title={t("admin.chantiers")} showBell onBell={() => {}} />
+
+      <SectionHeader
+        icon="construct-outline"
+        tone="brown"
+        title={t("admin.chantiers")}
+      />
 
       {loading ? (
-        <ActivityIndicator size="large" color="#b45309" />
+        <EmptyState
+          icon="sync-outline"
+          title={t("common.loading")}
+          message={t("admin.loadingChantiers")}
+        />
       ) : chantiers.length === 0 ? (
-        <Text style={styles.empty}>Aucun chantier pour le moment.</Text>
+        <EmptyState
+          icon="construct-outline"
+          title={t("admin.empty")}
+          message={t("admin.noChantiers")}
+        />
       ) : (
-        chantiers.map((c) => {
-          const progress = progressionPourcent(c.etape);
-          const nbPhotosAvant = Array.isArray(c.photos_avant)
-            ? c.photos_avant.length
-            : 0;
-          const nbPhotosApres = Array.isArray(c.photos_apres)
-            ? c.photos_apres.length
-            : 0;
-          const editable = canManage(c);
+        <View style={styles.grid}>
+          {chantiers.map((c) => {
+            const progress = progressionPourcent(c.etape);
+            const nbPhotosAvant = Array.isArray(c.photos_avant)
+              ? c.photos_avant.length
+              : 0;
+            const nbPhotosApres = Array.isArray(c.photos_apres)
+              ? c.photos_apres.length
+              : 0;
+            const editable = canManage(c);
 
-          return (
-            <View key={c.id} style={styles.card}>
-              <Text style={styles.name}>
-                Chantier #{c.id} — Devis #{c.devis_id}
-              </Text>
-              <Text style={styles.meta}>Client : {c.client_nom || "—"}</Text>
-              <Text style={styles.meta}>Ville : {c.ville || "—"}</Text>
-              <Text style={styles.meta}>
-                Technicien : {c.technicien_nom || "—"}
-              </Text>
-              <Text style={styles.meta}>
-                Étape : <Text style={styles.etape}>{c.etape || "—"}</Text>
-              </Text>
-
-              <View style={styles.progressBg}>
-                <View
-                  style={[styles.progressFill, { width: `${progress}%` }]}
-                />
-              </View>
-
-              <Text style={styles.photosInfo}>
-                Photos avant : {nbPhotosAvant} · après : {nbPhotosApres}
-              </Text>
-
-              <View style={styles.actionRow}>
-                {editable ? (
-                  <TouchableOpacity
-                    style={styles.primary}
-                    onPress={() => avancer(c)}
-                  >
-                    <Text style={styles.white}>Avancer</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.readonlyNote}>
-                    <Text style={styles.readonlyText}>
-                      Consultation seule
+            return (
+              <Card key={c.id} style={styles.card} padding={16}>
+                <View style={styles.header}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.name}>
+                      Chantier #{c.id} — Devis #{c.devis_id}
                     </Text>
+                    <StatusPill status={c.statut || "en_stock"} small />
                   </View>
-                )}
-
-                <TouchableOpacity
-                  style={styles.photosBtn}
-                  onPress={() =>
-                    navigation.navigate("ChantierDetail", { chantierId: c.id })
-                  }
-                >
-                  <Text style={styles.white}>Détail / Photos</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })
+                  <Text style={styles.meta}>{c.client_nom || t("admin.unknown")}</Text>
+                </View>
+                <Text style={styles.meta}>
+                  {t("admin.ville")} : {c.ville || t("common.unknown")}
+                </Text>
+                <Text style={styles.meta}>
+                  {t("admin.technicien")} : {c.technicien_nom || t("common.unknown")}
+                </Text>
+                <Text style={styles.meta}>
+                  {t("admin.etape")} : {c.etape || t("common.unknown")}
+                </Text>
+                <View style={[styles.progressBg, styles.progressBgSmall]}>
+                  <View
+                    style={[styles.progressFill, { width: `${progress}%` }]}
+                  />
+                </View>
+                <Text style={styles.photosInfo}>
+                  {t("admin.photos")} : {nbPhotosAvant} {t("admin.avant")} ·{" "}
+                  {nbPhotosApres} {t("admin.apres")}
+                </Text>
+                <View style={styles.actions}>
+                  {editable ? (
+                    <Button
+                      icon="arrow-forward-outline"
+                      label={t("admin.avancer")}
+                      size={24}
+                      compact
+                      variant="green"
+                      onPress={() => avancer(c)}
+                      style={styles.primary}
+                    />
+                  ) : (
+                    <View style={styles.readonlyNote}>
+                      <Text style={styles.readonlyText}>
+                        {t("admin.conseil")}
+                      </Text>
+                    </View>
+                  )}
+                  <Button
+                    icon="images-outline"
+                    label={t("admin.detail")}
+                    size={24}
+                    compact
+                    variant="blue"
+                    onPress={() =>
+                      navigation.navigate("ChantierDetail", { chantierId: c.id })
+                    }
+                    style={styles.photosBtn}
+                  />
+                </View>
+              </Card>
+            );
+          })}
+        </View>
       )}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#92400e",
-    marginBottom: 16,
+  content: { paddingBottom: SPACING.xxl },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.md,
+    marginBottom: SPACING.md,
   },
   card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: RADII.lg,
+    padding: 16,
+    marginBottom: SPACING.sm,
+    backgroundColor: COLORS.surface,
   },
-  name: { fontSize: 16, fontWeight: "700", marginBottom: 5 },
-  meta: { color: "#6b7280", marginBottom: 2 },
-  etape: { fontWeight: "700", color: "#b45309" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  nameRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
+  name: {
+    color: COLORS.ink,
+    fontFamily: FONTS.bold,
+    fontSize: 15,
+    flex: 1,
+  },
+  meta: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    marginTop: 2,
+    flex: 1,
+    marginRight: SPACING.sm,
+  },
   progressBg: {
-    height: 6,
-    backgroundColor: "#f3e8d4",
-    borderRadius: 3,
-    marginTop: 10,
-    overflow: "hidden",
+    height: 8,
+    backgroundColor: COLORS.border,
+    borderRadius: 4,
+    marginTop: SPACING.sm,
   },
-  progressFill: { height: 6, backgroundColor: "#0f766e" },
-  photosInfo: { fontSize: 12, color: "#6b7280", marginTop: 8, marginBottom: 8 },
-  actionRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  progressBgSmall: {
+    marginTop: 0,
+    height: 6,
+    marginBottom: SPACING.sm,
+  },
+  progressFill: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.green,
+  },
+  photosInfo: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    marginTop: SPACING.sm,
+    flexWrap: "wrap",
+  },
+  actions: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    flex: 1,
+    justifyContent: "flex-end",
+  },
   primary: {
-    backgroundColor: "#0f766e",
-    padding: 10,
-    borderRadius: 8,
-    paddingHorizontal: 14,
+    flex: 1,
+    marginRight: SPACING.sm,
   },
   photosBtn: {
-    backgroundColor: "#0ea5e9",
-    padding: 10,
-    borderRadius: 8,
-    paddingHorizontal: 14,
+    flex: 1,
   },
-  white: { color: "#fff", fontWeight: "700" },
-  empty: { textAlign: "center", color: "#6b7280", marginTop: 20 },
   readonlyNote: {
-    backgroundColor: "#f3f4f6",
-    padding: 10,
-    borderRadius: 8,
-    paddingHorizontal: 14,
+    backgroundColor: COLORS.border,
+    borderRadius: RADII.md,
+    padding: SPACING.sm,
+    alignItems: "center",
     justifyContent: "center",
   },
-  readonlyText: { color: "#6b7280", fontWeight: "600", fontSize: 12 },
+  readonlyText: {
+    color: COLORS.muted,
+    fontWeight: "600",
+    fontSize: 12,
+    textAlign: "center",
+  },
 });

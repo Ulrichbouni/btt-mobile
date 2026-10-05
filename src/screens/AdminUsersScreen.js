@@ -1,20 +1,25 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { StyleSheet, Text, View, Alert } from "react-native";
 
+import {
+  AppHeader,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  FilterPill,
+  Screen,
+  SectionHeader,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
+import { COLORS, FONTS, SPACING, RADII } from "../theme/theme";
 
 const ROLES = ["client", "technicien", "admin"];
 
 export default function AdminUsersScreen({ currentUser }) {
+  const { t } = useI18n();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("tous");
@@ -132,199 +137,208 @@ export default function AdminUsersScreen({ currentUser }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Utilisateurs</Text>
+    <Screen contentStyle={styles.content}>
+      <AppHeader title={t("admin.users")} showBell onBell={() => {}} />
 
-      <View style={styles.filters}>
-        {["tous", ...ROLES].map((r) => (
-          <TouchableOpacity
+      <SectionHeader
+        icon="people-outline"
+        tone="blue"
+        title={t("admin.users")}
+        subtitle={t("admin.userCount", { n: users.length })}
+      />
+
+      <View style={styles.filterRow}>
+        <FilterPill
+          label={t("common.all")}
+          active={filter === "tous"}
+          onPress={() => setFilter("tous")}
+        />
+        {ROLES.map((r) => (
+          <FilterPill
             key={r}
-            style={[styles.filterBtn, filter === r && styles.filterBtnActive]}
+            label={t(`roles.${r}`)}
+            active={filter === r}
             onPress={() => setFilter(r)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                filter === r && styles.filterTextActive,
-              ]}
-            >
-              {r}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </View>
 
-      {editingUser && (
-        <View style={styles.editCard}>
-          <Text style={styles.editTitle}>
-            Modifier l'utilisateur #{editingUser}
-          </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Nom"
+      {editingUser !== null ? (
+        <Card style={styles.editCard} padding={16}>
+          <SectionHeader icon="pencil-outline" tone="green" title="Modifier l'utilisateur" />
+
+          <Field
+            label={t("admin.nom")}
+            placeholder={t("admin.nomPlaceholder")}
             value={editForm.nom}
             onChangeText={(v) => setEditForm((f) => ({ ...f, nom: v }))}
+            autoCapitalize="words"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            keyboardType="email-address"
-            autoCapitalize="none"
+          <Field
+            label={t("admin.email")}
+            placeholder={t("admin.emailPlaceholder")}
             value={editForm.email}
             onChangeText={(v) => setEditForm((f) => ({ ...f, email: v }))}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Téléphone"
-            keyboardType="phone-pad"
+          <Field
+            label={t("admin.telephone")}
+            placeholder={t("admin.telephonePlaceholder")}
             value={editForm.telephone}
             onChangeText={(v) => setEditForm((f) => ({ ...f, telephone: v }))}
+            keyboardType="phone-pad"
           />
-          <TouchableOpacity
-            style={[styles.saveBtn, saving && styles.btnDisabled]}
-            onPress={saveEdit}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Enregistrer</Text>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelBtn} onPress={cancelEdit}>
-            <Text style={styles.buttonText}>Annuler</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+
+          <View style={styles.buttonRow}>
+            <Button
+              label={t("admin.save")}
+              icon="checkmark-outline"
+              variant="green"
+              onPress={saveEdit}
+              loading={saving}
+              disabled={saving}
+              style={styles.saveBtn}
+            />
+            <Button
+              label={t("admin.cancel")}
+              icon="close-outline"
+              variant="outline"
+              onPress={cancelEdit}
+              style={styles.cancelBtn}
+            />
+          </View>
+        </Card>
+      ) : null}
 
       {loading ? (
-        <ActivityIndicator size="large" color="#b45309" />
+        <EmptyState
+          icon="sync-outline"
+          title={t("common.loading")}
+          message={t("admin.loadingUsers")}
+        />
       ) : filteredUsers.length === 0 ? (
-        <Text style={styles.empty}>Aucun utilisateur pour ce filtre.</Text>
+        <EmptyState
+          icon="people-outline"
+          title={t("admin.empty")}
+          message={
+            filter === "tous"
+              ? t("admin.empty")
+              : t("admin.emptyFilter", { filter: t(`roles.${filter}`) })
+          }
+        />
       ) : (
         filteredUsers.map((user) => (
-          <View key={user.id} style={styles.card}>
-            <Text style={styles.name}>{user.nom}</Text>
-            <Text style={styles.meta}>{user.email}</Text>
-            <Text style={styles.meta}>Téléphone : {user.telephone || "—"}</Text>
-            <Text style={styles.role}>Rôle : {user.role}</Text>
-
-            <View style={styles.actionRow}>
-              {ROLES.filter((r) => r !== user.role).map((r) => (
-                <TouchableOpacity
-                  key={r}
-                  style={styles.button}
-                  onPress={() => updateRole(user.id, r)}
-                >
-                  <Text style={styles.buttonText}>{r}</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => startEdit(user)}
-              >
-                <Text style={styles.buttonText}>Modifier</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => deleteUser(user.id)}
-              >
-                <Text style={styles.buttonText}>Suppr.</Text>
-              </TouchableOpacity>
+          <Card key={user.id} style={styles.card} padding={16}>
+            <View style={styles.headerRow}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {user.nom ? user.nom.charAt(0).toUpperCase() : "?"}
+                </Text>
+              </View>
+              <View style={styles.info}>
+                <Text style={styles.name}>{user.nom || t("admin.unknown")}</Text>
+                <Text style={styles.meta}>{user.email}</Text>
+                <Text style={styles.meta}>
+                  Téléphone : {user.telephone || t("common.unknown")}
+                </Text>
+              </View>
             </View>
-          </View>
+            <View style={styles.footerRow}>
+              <StatusPill status={user.role === "admin" ? "admin" : user.role} small />
+              <View style={styles.actions}>
+                {ROLES.filter((r) => r !== user.role).map((r) => (
+                  <Button
+                    key={r}
+                    icon="swap-outline"
+                    label={r}
+                    size={20}
+                    compact
+                    variant="soft"
+                    onPress={() => updateRole(user.id, r)}
+                  />
+                ))}
+                <Button
+                  icon="pencil-outline"
+                  label={t("admin.edit")}
+                  size={20}
+                  compact
+                  variant="blue"
+                  onPress={() => startEdit(user)}
+                />
+                <Button
+                  icon="trash-outline"
+                  label={t("admin.delete")}
+                  size={20}
+                  compact
+                  variant="danger"
+                  onPress={() => deleteUser(user.id)}
+                />
+              </View>
+            </View>
+          </Card>
         ))
       )}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#92400e",
-    marginBottom: 16,
+  content: { paddingBottom: SPACING.xxl },
+  filterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 6,
   },
-  filters: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  filterBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
+  editCard: { backgroundColor: COLORS.primarySoft, borderRadius: RADII.lg },
+  buttonRow: {
+    flexDirection: "row",
+    gap: SPACING.md,
+    marginTop: SPACING.md,
   },
-  filterBtnActive: { backgroundColor: "#b45309", borderColor: "#b45309" },
-  filterText: { color: "#374151", fontWeight: "600", fontSize: 12 },
-  filterTextActive: { color: "#fff" },
-  editCard: {
-    backgroundColor: "#fff7ed",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: "#b45309",
-  },
-  editTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#92400e",
-    marginBottom: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-    backgroundColor: "#fff",
-  },
-  saveBtn: {
-    backgroundColor: "#0f766e",
-    borderRadius: 8,
-    padding: 12,
+  saveBtn: { flex: 1, marginRight: SPACING.md },
+  cancelBtn: { flex: 1 },
+  headerRow: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: SPACING.md,
   },
-  cancelBtn: {
-    backgroundColor: "#6b7280",
-    borderRadius: 8,
-    padding: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  btnDisabled: { opacity: 0.6 },
-  card: {
-    backgroundColor: "#fff",
+  avatar: {
+    width: 48,
+    height: 48,
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#f3e8d4",
+    backgroundColor: COLORS.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  name: { fontSize: 17, fontWeight: "700", marginBottom: 4 },
-  meta: { color: "#6b7280", marginBottom: 2 },
-  role: { fontWeight: "600", color: "#92400e", marginTop: 6, marginBottom: 10 },
-  actionRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  button: {
-    backgroundColor: "#b45309",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  avatarText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.primary,
   },
-  editButton: {
-    backgroundColor: "#0ea5e9",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  info: { flex: 1, marginLeft: SPACING.sm },
+  name: {
+    color: COLORS.ink,
+    fontFamily: FONTS.bold,
+    fontSize: 16,
   },
-  deleteButton: {
-    backgroundColor: "#dc2626",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  meta: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    marginTop: 2,
   },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  empty: { textAlign: "center", color: "#6b7280", marginTop: 20 },
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+  },
+  actions: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    flex: 1,
+    justifyContent: "flex-end",
+  },
 });

@@ -1,21 +1,34 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { StyleSheet, View, Alert } from "react-native";
 
+import {
+  AppHeader,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  FilterPill,
+  Screen,
+  SectionHeader,
+  StatusPill,
+} from "../components";
+import { useI18n } from "../i18n";
 import api from "../services/api";
 import { telechargerDevisPDF } from "../services/pdf";
+import { COLORS, FONTS, SPACING, RADII } from "../theme/theme";
 
 const STATUTS = ["envoye", "accepte", "paye", "annule"];
 
+const STATUT_LABELS = {
+  tous: "admin.statutTous",
+  envoye: "admin.statutEnvoye",
+  accepte: "admin.statutAccepte",
+  paye: "admin.statutPaye",
+  annule: "admin.statutAnnule",
+};
+
 export default function AdminDevisScreen() {
+  const { t } = useI18n();
   const [devis, setDevis] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("tous");
@@ -79,10 +92,7 @@ export default function AdminDevisScreen() {
       cancelEdit();
       await load();
     } catch (e) {
-      Alert.alert(
-        "Erreur",
-        e.response?.data?.error || "Mise à jour impossible",
-      );
+      Alert.alert("Erreur", e.response?.data?.error || "Mise à jour impossible");
     } finally {
       setSaving(false);
     }
@@ -102,10 +112,7 @@ export default function AdminDevisScreen() {
               Alert.alert("Succès", "Devis validé, chantier créé");
               await load();
             } catch (e) {
-              Alert.alert(
-                "Erreur",
-                e.response?.data?.error || "Validation impossible",
-              );
+              Alert.alert("Erreur", e.response?.data?.error || "Validation impossible");
             }
           },
         },
@@ -125,18 +132,14 @@ export default function AdminDevisScreen() {
             Alert.alert("Succès", "Devis supprimé");
             await load();
           } catch (e) {
-            Alert.alert(
-              "Erreur",
-              e.response?.data?.error || "Suppression impossible",
-            );
+            Alert.alert("Erreur", e.response?.data?.error || "Suppression impossible");
           }
         },
       },
     ]);
   };
 
-  // GET /api/devis/:id/pdf exige l'en-tête Authorization : on télécharge le
-  // PDF avec le token puis on le partage (l'ancien Linking.openURL renvoyait 401).
+  // Téléchargement du PDF avec le token, puis partage.
   const voirPDF = async (id) => {
     setPdfLoading(id);
     try {
@@ -149,233 +152,192 @@ export default function AdminDevisScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Devis</Text>
+    <Screen contentStyle={styles.content}>
+      <AppHeader title={t("admin.devis")} showBell onBell={() => {}} />
 
-      <View style={styles.filters}>
+      <SectionHeader
+        icon="document-text-outline"
+        tone="blue"
+        title={t("admin.devis")}
+      />
+
+      <View style={styles.filterRow}>
         {["tous", ...STATUTS].map((s) => (
-          <TouchableOpacity
+          <FilterPill
             key={s}
-            style={[styles.filterBtn, filter === s && styles.filterBtnActive]}
+            label={t(STATUT_LABELS[s])}
+            active={filter === s}
             onPress={() => setFilter(s)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                filter === s && styles.filterTextActive,
-              ]}
-            >
-              {s}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </View>
 
-      {editingId && (
-        <View style={styles.editCard}>
-          <Text style={styles.editTitle}>Ajuster le devis #{editingId}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Remise (%)"
-            keyboardType="numeric"
+      {editingId !== null ? (
+        <Card style={styles.editCard} padding={16}>
+          <SectionHeader icon="pencil-outline" tone="green" title="Ajuster le devis" />
+
+          <Field
+            label="Remise (%)"
             value={editForm.remise_pourcentage}
-            onChangeText={(v) =>
-              setEditForm((f) => ({ ...f, remise_pourcentage: v }))
-            }
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Frais transport"
+            onChangeText={(v) => setEditForm((f) => ({ ...f, remise_pourcentage: v }))}
             keyboardType="numeric"
+          />
+          <Field
+            label="Frais transport"
             value={editForm.frais_transport}
-            onChangeText={(v) =>
-              setEditForm((f) => ({ ...f, frais_transport: v }))
-            }
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Frais divers"
+            onChangeText={(v) => setEditForm((f) => ({ ...f, frais_transport: v }))}
             keyboardType="numeric"
-            value={editForm.frais_divers}
-            onChangeText={(v) =>
-              setEditForm((f) => ({ ...f, frais_divers: v }))
-            }
           />
-          <TouchableOpacity
-            style={[styles.saveBtn, saving && styles.disabled]}
-            onPress={saveEdit}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.white}>Enregistrer</Text>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelBtn} onPress={cancelEdit}>
-            <Text style={styles.white}>Annuler</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          <Field
+            label="Frais divers"
+            value={editForm.frais_divers}
+            onChangeText={(v) => setEditForm((f) => ({ ...f, frais_divers: v }))}
+            keyboardType="numeric"
+          />
+
+          <View style={styles.buttonRow}>
+            <Button
+              label="Enregistrer"
+              icon="checkmark-outline"
+              variant="green"
+              onPress={saveEdit}
+              loading={saving}
+              disabled={saving}
+              style={styles.saveBtn}
+            />
+            <Button
+              label="Annuler"
+              icon="close-outline"
+              variant="outline"
+              onPress={cancelEdit}
+              style={styles.cancelBtn}
+            />
+          </View>
+        </Card>
+      ) : null}
 
       {loading ? (
-        <ActivityIndicator size="large" color="#b45309" />
+        <EmptyState
+          icon="sync-outline"
+          title={t("common.loading")}
+          message={t("admin.loadingDevis")}
+        />
       ) : filtered.length === 0 ? (
-        <Text style={styles.empty}>Aucun devis pour ce filtre.</Text>
+        <EmptyState
+          icon="document-text-outline"
+          title={t("admin.empty")}
+          message={t("admin.noDevis")}
+        />
       ) : (
         filtered.map((d) => (
-          <View key={d.id} style={styles.card}>
-            <Text style={styles.name}>Devis #{d.id}</Text>
-            <Text style={styles.meta}>Client : {d.client_nom || "—"}</Text>
-            <Text style={styles.meta}>Ville : {d.ville || "—"}</Text>
-            <Text style={styles.meta}>
-              Surface : {d.surface ? `${d.surface} m²` : "—"}
-            </Text>
-            <Text style={styles.meta}>
-              Total :{" "}
-              {d.total_final != null
-                ? Number(d.total_final).toLocaleString()
-                : "à définir"}{" "}
-              FCFA
-            </Text>
-            <Text style={styles.statut}>Statut : {d.statut || "—"}</Text>
+          <Card key={d.id} style={styles.card} padding={16}>
+            <View style={styles.header}>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>Devis #{d.id}</Text>
+                <StatusPill status={d.statut || "en_stock"} small />
+              </View>
+              <Text style={styles.meta}>{d.client_nom || t("common.unknown")}</Text>
+            </View>
 
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={styles.editBtn}
+            <Text style={styles.meta}>{t("admin.ville")} : {d.ville || t("common.unknown")}</Text>
+            <Text style={styles.meta}>{t("admin.surface")} : {d.surface ? `${d.surface} m²` : "—"}</Text>
+            <Text style={styles.meta}>{t("admin.total")} : {d.total_final != null ? Number(d.total_final).toLocaleString() : "à définir"} FCFA</Text>
+
+            <View style={styles.actions}>
+              <Button
+                icon="pencil-outline"
+                label={t("admin.edit")}
+                size={20}
+                compact
+                variant="blue"
                 onPress={() => startEdit(d)}
-              >
-                <Text style={styles.white}>Ajuster</Text>
-              </TouchableOpacity>
-
+              />
               {d.statut === "envoye" && d.total_final != null && (
-                <TouchableOpacity
-                  style={styles.validBtn}
+                <Button
+                  icon="checkmark-circle-outline"
+                  label={t("admin.validate")}
+                  size={20}
+                  compact
+                  variant="green"
                   onPress={() => valider(d.id)}
-                >
-                  <Text style={styles.white}>Valider</Text>
-                </TouchableOpacity>
+                />
               )}
-
-              <TouchableOpacity
-                style={[styles.pdfBtn, pdfLoading === d.id && styles.disabled]}
+              <Button
+                icon="document-text-outline"
+                label={pdfLoading === d.id ? "PDF..." : "PDF"}
+                size={20}
+                compact
+                variant="purple"
                 onPress={() => voirPDF(d.id)}
                 disabled={pdfLoading === d.id}
-              >
-                <Text style={styles.white}>
-                  {pdfLoading === d.id ? "PDF..." : "PDF"}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.danger}
+              />
+              <Button
+                icon="trash-outline"
+                label={t("admin.delete")}
+                size={20}
+                compact
+                variant="danger"
                 onPress={() => supprimer(d.id)}
-              >
-                <Text style={styles.white}>Suppr.</Text>
-              </TouchableOpacity>
+              />
             </View>
-          </View>
+          </Card>
         ))
       )}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, backgroundColor: "#faf7f2" },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#92400e",
-    marginBottom: 16,
+  content: { paddingBottom: SPACING.xxl },
+  filterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 6,
   },
-  filters: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  filterBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
+  editCard: { backgroundColor: COLORS.primarySoft, borderRadius: RADII.lg },
+  buttonRow: {
+    flexDirection: "row",
+    gap: SPACING.md,
+    marginTop: SPACING.md,
   },
-  filterBtnActive: { backgroundColor: "#b45309", borderColor: "#b45309" },
-  filterText: { fontSize: 12, fontWeight: "600", color: "#374151" },
-  filterTextActive: { color: "#fff" },
-  editCard: {
-    backgroundColor: "#fff7ed",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: "#b45309",
-  },
-  editTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#92400e",
-    marginBottom: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-    backgroundColor: "#fff",
-  },
-  saveBtn: {
-    backgroundColor: "#0f766e",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  cancelBtn: {
-    backgroundColor: "#6b7280",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  disabled: { opacity: 0.6 },
+  saveBtn: { flex: 1, marginRight: SPACING.md },
+  cancelBtn: { flex: 1 },
   card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: RADII.lg,
+    padding: 16,
+    marginBottom: SPACING.md,
+    backgroundColor: COLORS.surface,
   },
-  name: { fontSize: 17, fontWeight: "700", marginBottom: 5 },
-  meta: { color: "#6b7280", marginBottom: 2 },
-  statut: {
-    fontWeight: "600",
-    color: "#92400e",
-    marginTop: 6,
-    marginBottom: 10,
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
   },
-  actionRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  editBtn: {
-    backgroundColor: "#0ea5e9",
-    padding: 10,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+  nameRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
   },
-  validBtn: {
-    backgroundColor: "#0f766e",
-    padding: 10,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+  name: {
+    color: COLORS.ink,
+    fontFamily: FONTS.bold,
+    fontSize: 15,
+    flex: 1,
   },
-  pdfBtn: {
-    backgroundColor: "#8b5cf6",
-    padding: 10,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+  meta: {
+    color: COLORS.muted,
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    marginTop: 4,
   },
-  danger: {
-    backgroundColor: "#dc2626",
-    padding: 10,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+  actions: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    flex: 1,
+    justifyContent: "flex-end",
   },
-  white: { color: "#fff", fontWeight: "700" },
-  empty: { textAlign: "center", color: "#6b7280", marginTop: 20 },
 });
