@@ -159,6 +159,7 @@ export default function AdminDevisScreen() {
         icon="document-text-outline"
         tone="blue"
         title={t("admin.devis")}
+        subtitle={t("admin.devisCount", { n: devis.length })}
       />
 
       <View style={styles.filterRow}>
@@ -177,18 +178,21 @@ export default function AdminDevisScreen() {
           <SectionHeader icon="pencil-outline" tone="green" title={t("admin.ajuster")} />
 
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.remise")}
             value={editForm.remise_pourcentage}
             onChangeText={(v) => setEditForm((f) => ({ ...f, remise_pourcentage: v }))}
             keyboardType="numeric"
           />
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.fraisTransport")}
             value={editForm.frais_transport}
             onChangeText={(v) => setEditForm((f) => ({ ...f, frais_transport: v }))}
             keyboardType="numeric"
           />
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.fraisDivers")}
             value={editForm.frais_divers}
             onChangeText={(v) => setEditForm((f) => ({ ...f, frais_divers: v }))}
@@ -293,7 +297,7 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     marginTop: SPACING.md,
   },
-  saveBtn: { flex: 1, marginRight: SPACING.md },
+  saveBtn: { flex: 1.4, marginRight: SPACING.md },
   cancelBtn: { flex: 1 },
   card: {
     borderRadius: RADII.lg,

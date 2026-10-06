@@ -204,6 +204,7 @@ export default function AdminMissionsScreen() {
 
         {!editingId && (
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.devisId")}
             placeholder={t("admin.devisIdPlaceholder")}
             icon="document-text-outline"
@@ -230,6 +231,7 @@ export default function AdminMissionsScreen() {
         )}
 
         <Field
+          labelBg="#FFFFFF"
           label={t("admin.dateVisite")}
           placeholder={t("admin.dateVisitePlaceholder")}
           icon="calendar-outline"

@@ -168,6 +168,7 @@ export default function AdminUsersScreen({ currentUser }) {
           <SectionHeader icon="pencil-outline" tone="green" title={t("admin.editUser")} />
 
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.nom")}
             placeholder={t("admin.nomPlaceholder")}
             value={editForm.nom}
@@ -175,6 +176,7 @@ export default function AdminUsersScreen({ currentUser }) {
             autoCapitalize="words"
           />
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.email")}
             placeholder={t("admin.emailPlaceholder")}
             value={editForm.email}
@@ -183,6 +185,7 @@ export default function AdminUsersScreen({ currentUser }) {
             autoCapitalize="none"
           />
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.telephone")}
             placeholder={t("admin.telephonePlaceholder")}
             value={editForm.telephone}
@@ -223,7 +226,7 @@ export default function AdminUsersScreen({ currentUser }) {
           title={t("admin.empty")}
           message={
             filter === "tous"
-              ? t("admin.empty")
+              ? t("admin.noUsers")
               : t("admin.emptyFilter", { filter: t(`roles.${filter}`) })
           }
         />

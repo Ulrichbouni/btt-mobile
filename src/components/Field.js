@@ -16,6 +16,7 @@ import { useI18n } from "../i18n";
 // passe) et enchaînement clavier entre les champs.
 export default function Field({
   label,
+  labelBg = COLORS.bg,
   icon,
   value,
   onChangeText,
@@ -41,7 +42,9 @@ export default function Field({
 
   return (
     <View style={[styles.wrap, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? (
+        <Text style={[styles.label, { backgroundColor: labelBg }]}>{label}</Text>
+      ) : null}
       <View
         style={[
           styles.box,
@@ -51,7 +54,12 @@ export default function Field({
         ]}
       >
         {icon ? (
-          <Ionicons name={icon} size={19} color={COLORS.muted} style={styles.icon} />
+          <Ionicons
+            name={icon}
+            size={19}
+            color={COLORS.muted}
+            style={[styles.icon, multiline && styles.iconMultiline]}
+          />
         ) : null}
         <TextInput
           ref={inputRef}
@@ -118,7 +126,8 @@ const styles = StyleSheet.create({
   boxMultiline: { minHeight: 120, alignItems: "flex-start", paddingVertical: 12 },
   boxError: { borderColor: COLORS.red },
   boxLocked: { backgroundColor: "#EDE7DC" },
-  icon: { marginRight: 10, marginTop: multiline ? 6 : 0 },
+  icon: { marginRight: 10 },
+  iconMultiline: { marginTop: 6 },
   input: {
     flex: 1,
     color: COLORS.ink,

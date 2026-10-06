@@ -78,6 +78,7 @@ export default function AdminChantiersScreen({ navigation, user }) {
         icon="construct-outline"
         tone="brown"
         title={t("admin.chantiers")}
+        subtitle={t("admin.chantierCount", { n: chantiers.length })}
       />
 
       {loading ? (

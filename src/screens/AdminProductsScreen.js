@@ -218,12 +218,14 @@ export default function AdminProductsScreen() {
           <SectionHeader icon="pencil-outline" tone="green" title={t("admin.newProduct")} />
 
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.prod.nom")}
             placeholder={t("admin.prod.nomPlaceholder")}
             value={form.nom}
             onChangeText={(v) => updateField("nom", v)}
           />
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.prod.nomEn")}
             placeholder={t("admin.prod.nomEnPlaceholder")}
             value={form.nom_en}
@@ -248,6 +250,7 @@ export default function AdminProductsScreen() {
             />
           ) : (
             <Field
+              labelBg="#FFFFFF"
               label={t("admin.prod.categorie")}
               placeholder={t("admin.prod.categoriePlaceholder")}
               value={form.categorie}
@@ -255,18 +258,21 @@ export default function AdminProductsScreen() {
             />
           )}
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.prod.application")}
             placeholder={t("admin.prod.applicationPlaceholder")}
             value={form.application}
             onChangeText={(v) => updateField("application", v)}
           />
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.prod.applicationEn")}
             placeholder={t("admin.prod.applicationEnPlaceholder")}
             value={form.application_en}
             onChangeText={(v) => updateField("application_en", v)}
           />
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.prod.prixTtc")}
             placeholder={t("admin.prod.prixTtcPlaceholder")}
             value={form.prix_ttc}
@@ -274,6 +280,7 @@ export default function AdminProductsScreen() {
             keyboardType="numeric"
           />
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.prod.poidsUnite")}
             placeholder={t("admin.prod.poidsUnitePlaceholder")}
             value={form.poids_unite}
@@ -281,6 +288,7 @@ export default function AdminProductsScreen() {
             keyboardType="numeric"
           />
           <Field
+            labelBg="#FFFFFF"
             label={t("admin.prod.qteConteneur")}
             placeholder={t("admin.prod.qteConteneurPlaceholder")}
             value={form.qte_conteneur}
@@ -374,7 +382,7 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     marginTop: SPACING.md,
   },
-  saveBtn: { flex: 1, marginRight: SPACING.md },
+  saveBtn: { flex: 1.4, marginRight: SPACING.md },
   cancelBtn: { flex: 1 },
   productHeader: {
     flexDirection: "row",
