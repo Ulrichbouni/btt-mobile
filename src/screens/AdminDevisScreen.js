@@ -47,7 +47,7 @@ export default function AdminDevisScreen() {
       const { data } = await api.get("/devis/admin/tous");
       setDevis(data);
     } catch (e) {
-      Alert.alert("Erreur", e.response?.data?.error || "Chargement impossible");
+      Alert.alert("Erreur", e.response?.data?.error || t("admin.chargementImpossible"));
     } finally {
       setLoading(false);
     }
@@ -88,11 +88,11 @@ export default function AdminDevisScreen() {
         frais_transport: Number(editForm.frais_transport) || 0,
         frais_divers: Number(editForm.frais_divers) || 0,
       });
-      Alert.alert("Succès", "Devis mis à jour");
+      Alert.alert(t("common.success"), t("admin.misAJour"));
       cancelEdit();
       await load();
     } catch (e) {
-      Alert.alert("Erreur", e.response?.data?.error || "Mise à jour impossible");
+      Alert.alert("Erreur", e.response?.data?.error || t("admin.majImpossible"));
     } finally {
       setSaving(false);
     }
@@ -100,19 +100,19 @@ export default function AdminDevisScreen() {
 
   const valider = (id) => {
     Alert.alert(
-      "Valider le devis",
-      "Le devis devient payable et un chantier sera créé. Confirmer ?",
+      t("admin.validerTitre"),
+      t("admin.validerMessage"),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Valider",
+          text: t("admin.validate"),
           onPress: async () => {
             try {
               await api.post(`/devis/${id}/valider`);
-              Alert.alert("Succès", "Devis validé, chantier créé");
+              Alert.alert(t("common.success"), t("admin.valideChantier"));
               await load();
             } catch (e) {
-              Alert.alert("Erreur", e.response?.data?.error || "Validation impossible");
+              Alert.alert("Erreur", e.response?.data?.error || t("admin.validationImpossible"));
             }
           },
         },
@@ -121,18 +121,18 @@ export default function AdminDevisScreen() {
   };
 
   const supprimer = (id) => {
-    Alert.alert("Confirmation", "Supprimer ce devis ?", [
-      { text: "Annuler", style: "cancel" },
+    Alert.alert(t("admin.confirmation"), t("admin.supprimerQuestion"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Supprimer",
+        text: t("admin.delete"),
         style: "destructive",
         onPress: async () => {
           try {
             await api.delete(`/devis/${id}`);
-            Alert.alert("Succès", "Devis supprimé");
+            Alert.alert(t("common.success"), t("admin.supprime"));
             await load();
           } catch (e) {
-            Alert.alert("Erreur", e.response?.data?.error || "Suppression impossible");
+            Alert.alert("Erreur", e.response?.data?.error || t("admin.suppressionImpossible"));
           }
         },
       },
@@ -145,7 +145,7 @@ export default function AdminDevisScreen() {
     try {
       await telechargerDevisPDF(id);
     } catch (e) {
-      Alert.alert("Erreur", e.message || "Impossible d'ouvrir le PDF");
+      Alert.alert(t("common.error"), e.message || t("admin.pdfImpossible"));
     } finally {
       setPdfLoading(null);
     }
@@ -174,22 +174,22 @@ export default function AdminDevisScreen() {
 
       {editingId !== null ? (
         <Card style={styles.editCard} padding={16}>
-          <SectionHeader icon="pencil-outline" tone="green" title="Ajuster le devis" />
+          <SectionHeader icon="pencil-outline" tone="green" title={t("admin.ajuster")} />
 
           <Field
-            label="Remise (%)"
+            label={t("admin.remise")}
             value={editForm.remise_pourcentage}
             onChangeText={(v) => setEditForm((f) => ({ ...f, remise_pourcentage: v }))}
             keyboardType="numeric"
           />
           <Field
-            label="Frais transport"
+            label={t("admin.fraisTransport")}
             value={editForm.frais_transport}
             onChangeText={(v) => setEditForm((f) => ({ ...f, frais_transport: v }))}
             keyboardType="numeric"
           />
           <Field
-            label="Frais divers"
+            label={t("admin.fraisDivers")}
             value={editForm.frais_divers}
             onChangeText={(v) => setEditForm((f) => ({ ...f, frais_divers: v }))}
             keyboardType="numeric"
@@ -197,7 +197,7 @@ export default function AdminDevisScreen() {
 
           <View style={styles.buttonRow}>
             <Button
-              label="Enregistrer"
+              label={t("common.save")}
               icon="checkmark-outline"
               variant="green"
               onPress={saveEdit}
@@ -206,7 +206,7 @@ export default function AdminDevisScreen() {
               style={styles.saveBtn}
             />
             <Button
-              label="Annuler"
+              label={t("common.cancel")}
               icon="close-outline"
               variant="outline"
               onPress={cancelEdit}
@@ -241,42 +241,34 @@ export default function AdminDevisScreen() {
 
             <Text style={styles.meta}>{t("admin.ville")} : {d.ville || t("common.unknown")}</Text>
             <Text style={styles.meta}>{t("admin.surface")} : {d.surface ? `${d.surface} m²` : "—"}</Text>
-            <Text style={styles.meta}>{t("admin.total")} : {d.total_final != null ? Number(d.total_final).toLocaleString() : "à définir"} FCFA</Text>
+            <Text style={styles.meta}>{t("admin.total")} : {d.total_final != null ? Number(d.total_final).toLocaleString() : t("admin.aDefinir")} FCFA</Text>
 
             <View style={styles.actions}>
               <Button
                 icon="pencil-outline"
                 label={t("admin.edit")}
-                size={20}
-                compact
-                variant="blue"
+                                variant="soft"
                 onPress={() => startEdit(d)}
               />
               {d.statut === "envoye" && d.total_final != null && (
                 <Button
                   icon="checkmark-circle-outline"
                   label={t("admin.validate")}
-                  size={20}
-                  compact
-                  variant="green"
+                                    variant="green"
                   onPress={() => valider(d.id)}
                 />
               )}
               <Button
                 icon="document-text-outline"
-                label={pdfLoading === d.id ? "PDF..." : "PDF"}
-                size={20}
-                compact
-                variant="purple"
+                label={t("admin.pdf")}
+                                variant="primary"
                 onPress={() => voirPDF(d.id)}
                 disabled={pdfLoading === d.id}
               />
               <Button
                 icon="trash-outline"
                 label={t("admin.delete")}
-                size={20}
-                compact
-                variant="danger"
+                                variant="danger"
                 onPress={() => supprimer(d.id)}
               />
             </View>

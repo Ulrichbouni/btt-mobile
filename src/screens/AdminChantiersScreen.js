@@ -138,8 +138,6 @@ export default function AdminChantiersScreen({ navigation, user }) {
                     <Button
                       icon="arrow-forward-outline"
                       label={t("admin.avancer")}
-                      size={24}
-                      compact
                       variant="green"
                       onPress={() => avancer(c)}
                       style={styles.primary}
@@ -154,9 +152,7 @@ export default function AdminChantiersScreen({ navigation, user }) {
                   <Button
                     icon="images-outline"
                     label={t("admin.detail")}
-                    size={24}
-                    compact
-                    variant="blue"
+                    variant="soft"
                     onPress={() =>
                       navigation.navigate("ChantierDetail", { chantierId: c.id })
                     }

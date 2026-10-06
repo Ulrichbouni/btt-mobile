@@ -165,7 +165,7 @@ export default function AdminUsersScreen({ currentUser }) {
 
       {editingUser !== null ? (
         <Card style={styles.editCard} padding={16}>
-          <SectionHeader icon="pencil-outline" tone="green" title="Modifier l'utilisateur" />
+          <SectionHeader icon="pencil-outline" tone="green" title={t("admin.editUser")} />
 
           <Field
             label={t("admin.nom")}
@@ -252,8 +252,6 @@ export default function AdminUsersScreen({ currentUser }) {
                     key={r}
                     icon="swap-outline"
                     label={r}
-                    size={20}
-                    compact
                     variant="soft"
                     onPress={() => updateRole(user.id, r)}
                   />
@@ -261,16 +259,12 @@ export default function AdminUsersScreen({ currentUser }) {
                 <Button
                   icon="pencil-outline"
                   label={t("admin.edit")}
-                  size={20}
-                  compact
-                  variant="blue"
+                  variant="soft"
                   onPress={() => startEdit(user)}
                 />
                 <Button
                   icon="trash-outline"
                   label={t("admin.delete")}
-                  size={20}
-                  compact
                   variant="danger"
                   onPress={() => deleteUser(user.id)}
                 />

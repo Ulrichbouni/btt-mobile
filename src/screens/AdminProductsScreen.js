@@ -173,7 +173,7 @@ export default function AdminProductsScreen() {
 
       {tab === "new" ? (
         <Card style={styles.formCard} padding={16}>
-          <SectionHeader icon="pencil-outline" tone="green" title="Nouveau produit" />
+          <SectionHeader icon="pencil-outline" tone="green" title={t("admin.newProduct")} />
 
           <Field
             label={t("admin.prod.nom")}
@@ -249,7 +249,7 @@ export default function AdminProductsScreen() {
               disabled={submitting}
               style={styles.saveBtn}
             />
-<Button
+                <Button
               label={t("admin.cancel")}
               icon="close-outline"
               variant="outline"
@@ -288,19 +288,15 @@ export default function AdminProductsScreen() {
               </Text>
 
               <View style={styles.actionRow}>
-<Button
+                <Button
                   icon="pencil-outline"
                   label={t("admin.edit")}
-                  size={20}
-                  compact
-                  variant="blue"
+                  variant="soft"
                   onPress={() => editProduct(product)}
                 />
-<Button
+                <Button
                   icon="trash-outline"
                   label={t("admin.delete")}
-                  size={20}
-                  compact
                   variant="danger"
                   onPress={() => deleteProduct(product.id)}
                 />
