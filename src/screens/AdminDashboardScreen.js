@@ -8,12 +8,12 @@ import { COLORS, FONTS, SPACING } from "../theme/theme";
 // Raccourcis admin : toutes les fonctions du back-office, dans l'ordre du
 // plan (utilisateurs, produits, missions, devis, chantiers, 2FA).
 const SHORTCUTS = [
-  { key: "users", label: "Utilisateurs", route: "AdminUsers", icon: "people-outline", tone: "blue" },
-  { key: "products", label: "Produits", route: "AdminProducts", icon: "grid-outline", tone: "green" },
-  { key: "missions", label: "Missions", route: "AdminMissions", icon: "checkmark-circle-outline", tone: "yellow" },
-  { key: "devis", label: "Devis", route: "AdminDevis", icon: "document-text-outline", tone: "purple" },
-  { key: "chantiers", label: "Chantiers", route: "AdminChantiers", icon: "construct-outline", tone: "brown" },
-  { key: "otp", label: "2FA", route: "OTPSetup", icon: "lock-closed-outline", tone: "beige" },
+  { key: "users", labelKey: "admin.navUsers", route: "AdminUsers", icon: "people-outline", tone: "blue" },
+  { key: "products", labelKey: "admin.navProducts", route: "AdminProducts", icon: "grid-outline", tone: "green" },
+  { key: "missions", labelKey: "admin.navMissions", route: "AdminMissions", icon: "checkmark-circle-outline", tone: "yellow" },
+  { key: "devis", labelKey: "admin.navDevis", route: "AdminDevis", icon: "document-text-outline", tone: "purple" },
+  { key: "chantiers", labelKey: "admin.navChantiers", route: "AdminChantiers", icon: "construct-outline", tone: "brown" },
+  { key: "otp", labelKey: "admin.navOtp", route: "OTPSetup", icon: "lock-closed-outline", tone: "beige" },
 ];
 
 export default function AdminDashboardScreen({ navigation }) {
@@ -35,7 +35,7 @@ export default function AdminDashboardScreen({ navigation }) {
           >
             <IconTile icon={s.icon} tone={s.tone} size={52} />
             <Text style={styles.gridLabel} numberOfLines={1}>
-              {s.label}
+              {t(s.labelKey)}
             </Text>
           </TouchableOpacity>
         ))}

@@ -47,8 +47,8 @@ export default function AdminProductsScreen() {
       setProducts(data);
     } catch (error) {
       Alert.alert(
-        "Erreur",
-        error.response?.data?.error || "Impossible de charger les produits",
+        t("common.error"),
+        error.response?.data?.error || t("admin.loadProductsFailed"),
       );
     } finally {
       setLoading(false);
@@ -102,7 +102,7 @@ export default function AdminProductsScreen() {
       !form.categorie.trim() ||
       !form.prix_ttc
     ) {
-      Alert.alert("Erreur", "Nom, épaisseur, catégorie et prix sont requis.");
+      Alert.alert(t("common.error"), t("admin.needFields"));
       return;
     }
 
@@ -123,7 +123,7 @@ export default function AdminProductsScreen() {
     };
 
     if (Number.isNaN(payload.prix_ttc)) {
-      Alert.alert("Erreur", "Prix TTC invalide.");
+      Alert.alert(t("common.error"), t("admin.badPrice"));
       return;
     }
 
@@ -131,10 +131,10 @@ export default function AdminProductsScreen() {
     try {
       if (editingId) {
         await api.put(`/products/${editingId}`, payload);
-        Alert.alert("Succès", "Produit modifié");
+        Alert.alert(t("common.success"), t("admin.productUpdated"));
       } else {
         await api.post("/products", payload);
-        Alert.alert("Succès", "Produit créé");
+        Alert.alert(t("common.success"), t("admin.productCreated"));
       }
 
       setForm(emptyForm);
@@ -145,8 +145,8 @@ export default function AdminProductsScreen() {
       const msg =
         details?.map((d) => `${d.champ}: ${d.message}`).join("\n") ||
         error.response?.data?.error ||
-        "Opération impossible";
-      Alert.alert("Erreur", msg);
+        t("admin.opImpossible");
+      Alert.alert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -169,20 +169,20 @@ export default function AdminProductsScreen() {
   };
 
   const deleteProduct = async (id) => {
-    Alert.alert("Confirmation", "Supprimer ce produit ?", [
-      { text: "Annuler", style: "cancel" },
+    Alert.alert(t("admin.confirmation"), t("admin.deleteProductMsg"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Supprimer",
+        text: t("admin.delete"),
         style: "destructive",
         onPress: async () => {
           try {
             const { data } = await api.delete(`/products/${id}`);
-            Alert.alert("Succès", data.message || "Produit supprimé");
+            Alert.alert(t("common.success"), data.message || t("admin.productDeleted"));
             await loadProducts();
           } catch (error) {
             Alert.alert(
-              "Erreur",
-              error.response?.data?.error || "Suppression impossible",
+              t("common.error"),
+              error.response?.data?.error || t("admin.suppressionImpossible"),
             );
           }
         },

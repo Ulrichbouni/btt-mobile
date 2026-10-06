@@ -26,7 +26,7 @@ export default function AdminChantiersScreen({ navigation, user }) {
       const { data } = await api.get("/chantiers/admin/tous");
       setChantiers(data);
     } catch (e) {
-      Alert.alert("Erreur", e.response?.data?.error || "Chargement impossible");
+      Alert.alert(t("common.error"), e.response?.data?.error || t("admin.chargementImpossible"));
     } finally {
       setLoading(false);
     }
@@ -46,23 +46,23 @@ export default function AdminChantiersScreen({ navigation, user }) {
   const avancer = (chantier) => {
     const idx = ETAPES.indexOf(chantier.etape);
     if (idx >= ETAPES.length - 1) {
-      Alert.alert("Info", "Chantier déjà à la dernière étape.");
+      Alert.alert(t("admin.info"), t("admin.lastEtape"));
       return;
     }
     const prochaine = ETAPES[idx + 1];
-    Alert.alert("Avancer le chantier", `Passer à l'étape « ${prochaine} » ?`, [
-      { text: "Annuler", style: "cancel" },
+    Alert.alert(t("admin.avancerTitle"), t("admin.avancerMsg", { etape: prochaine }), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Avancer",
+        text: t("admin.avancer"),
         onPress: async () => {
           try {
             await api.put(`/chantiers/${chantier.id}/avancer`);
-            Alert.alert("Succès", `Étape : ${prochaine}`);
+            Alert.alert(t("common.success"), t("admin.etapeDone", { etape: prochaine }));
             await load();
           } catch (e) {
             Alert.alert(
-              "Erreur",
-              e.response?.data?.error || "Impossible d'avancer",
+              t("common.error"),
+              e.response?.data?.error || t("admin.avancerImpossible"),
             );
           }
         },

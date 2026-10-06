@@ -47,7 +47,7 @@ export default function AdminDevisScreen() {
       const { data } = await api.get("/devis/admin/tous");
       setDevis(data);
     } catch (e) {
-      Alert.alert("Erreur", e.response?.data?.error || t("admin.chargementImpossible"));
+      Alert.alert(t("common.error"), e.response?.data?.error || t("admin.chargementImpossible"));
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ export default function AdminDevisScreen() {
       cancelEdit();
       await load();
     } catch (e) {
-      Alert.alert("Erreur", e.response?.data?.error || t("admin.majImpossible"));
+      Alert.alert(t("common.error"), e.response?.data?.error || t("admin.majImpossible"));
     } finally {
       setSaving(false);
     }
@@ -112,7 +112,7 @@ export default function AdminDevisScreen() {
               Alert.alert(t("common.success"), t("admin.valideChantier"));
               await load();
             } catch (e) {
-              Alert.alert("Erreur", e.response?.data?.error || t("admin.validationImpossible"));
+              Alert.alert(t("common.error"), e.response?.data?.error || t("admin.validationImpossible"));
             }
           },
         },
@@ -132,7 +132,7 @@ export default function AdminDevisScreen() {
             Alert.alert(t("common.success"), t("admin.supprime"));
             await load();
           } catch (e) {
-            Alert.alert("Erreur", e.response?.data?.error || t("admin.suppressionImpossible"));
+            Alert.alert(t("common.error"), e.response?.data?.error || t("admin.suppressionImpossible"));
           }
         },
       },

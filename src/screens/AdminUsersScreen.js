@@ -38,8 +38,8 @@ export default function AdminUsersScreen({ currentUser }) {
       setUsers(data);
     } catch (error) {
       Alert.alert(
-        "Erreur",
-        error.response?.data?.error || "Impossible de charger les utilisateurs",
+        t("common.error"),
+        error.response?.data?.error || t("admin.loadUsersFailed"),
       );
     } finally {
       setLoading(false);
@@ -58,11 +58,11 @@ export default function AdminUsersScreen({ currentUser }) {
   const updateRole = async (userId, role) => {
     try {
       await api.put(`/admin/utilisateurs/${userId}/role`, { role });
-      Alert.alert("Succès", `Rôle mis à jour : ${role}`);
+      Alert.alert(t("common.success"), t("admin.roleUpdated", { role }));
       loadUsers();
     } catch (error) {
       Alert.alert(
-        "Erreur",
+        t("common.error"),
         error.response?.data?.error || "Impossible de modifier le rôle",
       );
     }
@@ -71,25 +71,25 @@ export default function AdminUsersScreen({ currentUser }) {
   const deleteUser = (userId) => {
     if (currentUser?.id === userId) {
       Alert.alert(
-        "Impossible",
-        "Vous ne pouvez pas supprimer votre propre compte.",
+        t("admin.impossible"),
+        t("admin.selfDelete"),
       );
       return;
     }
-    Alert.alert("Confirmation", "Supprimer cet utilisateur ?", [
-      { text: "Annuler", style: "cancel" },
+    Alert.alert(t("admin.confirmation"), t("admin.deleteUserMsg"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Supprimer",
+        text: t("admin.delete"),
         style: "destructive",
         onPress: async () => {
           try {
             await api.delete(`/admin/utilisateurs/${userId}`);
-            Alert.alert("Succès", "Utilisateur supprimé");
+            Alert.alert(t("common.success"), t("admin.userDeleted"));
             loadUsers();
           } catch (error) {
             Alert.alert(
-              "Erreur",
-              error.response?.data?.error || "Suppression impossible",
+              t("common.error"),
+              error.response?.data?.error || t("admin.suppressionImpossible"),
             );
           }
         },
@@ -113,7 +113,7 @@ export default function AdminUsersScreen({ currentUser }) {
 
   const saveEdit = async () => {
     if (!editForm.nom.trim() || !editForm.email.trim()) {
-      Alert.alert("Erreur", "Nom et email sont requis.");
+      Alert.alert(t("common.error"), t("admin.needNameEmail"));
       return;
     }
     setSaving(true);
@@ -123,13 +123,13 @@ export default function AdminUsersScreen({ currentUser }) {
         email: editForm.email.trim(),
         telephone: editForm.telephone.trim() || undefined,
       });
-      Alert.alert("Succès", "Utilisateur mis à jour");
+      Alert.alert(t("common.success"), t("admin.userUpdated"));
       cancelEdit();
       loadUsers();
     } catch (error) {
       Alert.alert(
-        "Erreur",
-        error.response?.data?.error || "Mise à jour impossible",
+        t("common.error"),
+        error.response?.data?.error || t("admin.majImpossible"),
       );
     } finally {
       setSaving(false);

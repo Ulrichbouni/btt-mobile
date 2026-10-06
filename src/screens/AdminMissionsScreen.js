@@ -50,7 +50,7 @@ export default function AdminMissionsScreen() {
       setMissions(m.data);
       setUsers(u.data.filter((x) => x.role === "technicien"));
     } catch (e) {
-      Alert.alert("Erreur", e.response?.data?.error || "Chargement impossible");
+      Alert.alert(t("common.error"), e.response?.data?.error || t("admin.chargementImpossible"));
     } finally {
       setLoading(false);
     }
@@ -77,15 +77,15 @@ export default function AdminMissionsScreen() {
 
   const submit = async () => {
     if (!form.technicien_id) {
-      Alert.alert("Erreur", "Sélectionnez un technicien");
+      Alert.alert(t("common.error"), t("admin.needTech"));
       return;
     }
     if (!editingId && !form.devis_id) {
-      Alert.alert("Erreur", "Renseignez l'ID du devis");
+      Alert.alert(t("common.error"), t("admin.needDevisId"));
       return;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date_visite)) {
-      Alert.alert("Erreur", "Date au format AAAA-MM-JJ");
+      Alert.alert(t("common.error"), t("admin.badDate"));
       return;
     }
 
@@ -99,14 +99,14 @@ export default function AdminMissionsScreen() {
           date_visite: isoDate,
           statut: form.statut,
         });
-        Alert.alert("Succès", "Mission mise à jour");
+        Alert.alert(t("common.success"), t("admin.missionUpdated"));
       } else {
         await api.post("/missions", {
           devis_id: Number(form.devis_id),
           technicien_id: form.technicien_id,
           date_visite: isoDate,
         });
-        Alert.alert("Succès", "Mission créée");
+        Alert.alert(t("common.success"), t("admin.missionCreated"));
       }
       resetForm();
       await load();
@@ -116,7 +116,7 @@ export default function AdminMissionsScreen() {
         details?.map((d) => `${d.champ}: ${d.message}`).join("\n") ||
         e.response?.data?.error ||
         "Opération impossible";
-      Alert.alert("Erreur", msg);
+      Alert.alert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -135,10 +135,10 @@ export default function AdminMissionsScreen() {
   };
 
   const remove = (id) => {
-    Alert.alert("Confirmation", "Supprimer cette mission ?", [
-      { text: "Annuler", style: "cancel" },
+    Alert.alert(t("admin.confirmation"), t("admin.deleteMissionMsg"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Supprimer",
+        text: t("admin.delete"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -146,8 +146,8 @@ export default function AdminMissionsScreen() {
             await load();
           } catch (e) {
             Alert.alert(
-              "Erreur",
-              e.response?.data?.error || "Suppression impossible",
+              t("common.error"),
+              e.response?.data?.error || t("admin.suppressionImpossible"),
             );
           }
         },
@@ -157,21 +157,21 @@ export default function AdminMissionsScreen() {
 
   const validerMesures = (missionId) => {
     Alert.alert(
-      "Valider les mesures",
-      "Cette action marque la mission comme terminée et valide les mesures terrain. Confirmer ?",
+      t("admin.validerMesuresTitle"),
+      t("admin.validerMesuresMsg"),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Valider",
+          text: t("admin.valider"),
           onPress: async () => {
             try {
               await api.put(`/missions/${missionId}/valider`);
-              Alert.alert("Succès", "Mesures validées");
+              Alert.alert(t("common.success"), t("admin.mesuresValidees"));
               await load();
             } catch (e) {
               Alert.alert(
-                "Erreur",
-                e.response?.data?.error || "Validation impossible",
+                t("common.error"),
+                e.response?.data?.error || t("admin.validationImpossible"),
               );
             }
           },
