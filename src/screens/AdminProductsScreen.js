@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View, Alert } from "react-native";
 
 import {
@@ -8,6 +8,7 @@ import {
   EmptyState,
   Field,
   Screen,
+  Select,
   SectionHeader,
   SegmentedTabs,
   StatusPill,
@@ -15,6 +16,20 @@ import {
 import { useI18n } from "../i18n";
 import api from "../services/api";
 import { COLORS, FONTS, SPACING, RADII } from "../theme/theme";
+import { EPAISSEURS } from "../constants/produits";
+
+const emptyForm = {
+  nom: "",
+  nom_en: "",
+  epaisseur: "",
+  categorie: "",
+  application: "",
+  application_en: "",
+  prix_ttc: "",
+  poids_unite: "",
+  qte_conteneur: "",
+  statut_stock: "En stock",
+};
 
 export default function AdminProductsScreen() {
   const { t } = useI18n();
@@ -43,6 +58,33 @@ export default function AdminProductsScreen() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  // Options des Selects : valeurs canoniques (constants/produits) enrichies
+  // de ce qui existe déjà en base ; catégorie dérivée des produits, comme le
+  // catalogue. Champ libre tant qu'aucune catégorie n'existe encore.
+  const epaisseurOptions = useMemo(
+    () =>
+      [
+        ...EPAISSEURS.filter(Boolean),
+        String(form.epaisseur || ""),
+        ...products.map((p) => String(p.epaisseur || "")),
+      ].filter(Boolean).filter((v, i, arr) => arr.indexOf(v) === i),
+    [products, form.epaisseur],
+  );
+  const categoryOptions = useMemo(
+    () =>
+      [form.categorie, ...products.map((p) => p.categorie)]
+        .filter(Boolean)
+        .filter((v, i, arr) => arr.indexOf(v) === i),
+    [products, form.categorie],
+  );
+  const statutStockOptions = useMemo(
+    () =>
+      ["En stock", "Rupture", form.statut_stock]
+        .filter(Boolean)
+        .filter((v, i, arr) => arr.indexOf(v) === i),
+    [form.statut_stock],
+  );
 
   const updateField = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -187,18 +229,31 @@ export default function AdminProductsScreen() {
             value={form.nom_en}
             onChangeText={(v) => updateField("nom_en", v)}
           />
-          <Field
+          <Select
             label={t("admin.prod.epaisseur")}
             placeholder={t("admin.prod.epaisseurPlaceholder")}
+            icon="layers-outline"
             value={form.epaisseur}
-            onChangeText={(v) => updateField("epaisseur", v)}
+            options={epaisseurOptions.map((e) => ({ value: e, label: e }))}
+            onChange={(v) => updateField("epaisseur", v)}
           />
-          <Field
-            label={t("admin.prod.categorie")}
-            placeholder={t("admin.prod.categoriePlaceholder")}
-            value={form.categorie}
-            onChangeText={(v) => updateField("categorie", v)}
-          />
+          {categoryOptions.length > 0 ? (
+            <Select
+              label={t("admin.prod.categorie")}
+              placeholder={t("admin.prod.categoriePlaceholder")}
+              icon="grid-outline"
+              value={form.categorie}
+              options={categoryOptions.map((c) => ({ value: c, label: c }))}
+              onChange={(v) => updateField("categorie", v)}
+            />
+          ) : (
+            <Field
+              label={t("admin.prod.categorie")}
+              placeholder={t("admin.prod.categoriePlaceholder")}
+              value={form.categorie}
+              onChangeText={(v) => updateField("categorie", v)}
+            />
+          )}
           <Field
             label={t("admin.prod.application")}
             placeholder={t("admin.prod.applicationPlaceholder")}
@@ -232,11 +287,13 @@ export default function AdminProductsScreen() {
             onChangeText={(v) => updateField("qte_conteneur", v)}
             keyboardType="numeric"
           />
-          <Field
+          <Select
             label={t("admin.prod.statutStock")}
             placeholder={t("admin.prod.statutStockPlaceholder")}
+            icon="cube-outline"
             value={form.statut_stock}
-            onChangeText={(v) => updateField("statut_stock", v)}
+            options={statutStockOptions.map((s) => ({ value: s, label: s }))}
+            onChange={(v) => updateField("statut_stock", v)}
           />
 
           <View style={styles.buttonRow}>

@@ -15,6 +15,7 @@ import { useI18n } from "../i18n";
 import api from "../services/api";
 import { toNumber } from "../utils/numbers";
 import { COLORS, FONTS, SPACING, formatXAF } from "../theme/theme";
+import { EPAISSEURS } from "../constants/produits";
 
 const TYPES = [
   { value: "residentiel", key: "residential" },
@@ -22,8 +23,6 @@ const TYPES = [
   { value: "industriel", key: "industrial" },
 ];
 
-// "" => laisser le backend suggérer l'épaisseur selon le type de bâtiment
-const EPAISSEURS = ["", "8mm", "10mm", "12mm", "14mm"];
 
 export default function CalculatorScreen({ navigation, route }) {
   const { t } = useI18n();
