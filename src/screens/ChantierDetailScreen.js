@@ -20,21 +20,28 @@ import { COLORS, FONTS, RADII, SPACING } from "../theme/theme";
 
 export default function ChantierDetailScreen({ route, user, navigation }) {
   const { t } = useI18n();
-  const { chantierId } = route.params;
+  const chantierId = route?.params?.chantierId ?? null;
   const [chantier, setChantier] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [uploadingType, setUploadingType] = useState(null); // 'avant' | 'apres'
+  const [uploadingType, setUploadingType] = useState(null);
 
   const load = async () => {
+    if (!chantierId) {
+      setChantier(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const { data } = await api.get(`/chantiers/${chantierId}`);
-      setChantier(data);
+      setChantier(data || null);
     } catch (e) {
       Alert.alert(
         t("common.error"),
         e.response?.data?.error || t("chantierDetail.loadError"),
       );
+      setChantier(null);
     } finally {
       setLoading(false);
     }
@@ -45,14 +52,14 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
   }, [chantierId]);
 
   const pickAndUpload = async (type) => {
-    // 1. Demander la permission
+    if (!chantierId) return;
+
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert(t("common.error"), t("chantierDetail.permission"));
       return;
     }
 
-    // 2. Sélectionner plusieurs images
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
@@ -63,7 +70,6 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
 
     setUploadingType(type);
     try {
-      // 3. Uploader chaque image vers /uploads/photo
       const uploadedUrls = [];
       for (const asset of result.assets) {
         const formData = new FormData();
@@ -77,7 +83,6 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
         uploadedUrls.push(data.url);
       }
 
-      // 4. Attacher les URLs au chantier
       await api.post(`/chantiers/${chantierId}/photos`, {
         type,
         urls: uploadedUrls,
@@ -100,10 +105,16 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
 
   const avancer = () => {
     const prochaine = prochaineEtape(chantier?.etape);
+    if (!chantierId || !chantier) {
+      Alert.alert(t("common.error"), t("chantierDetail.loadError"));
+      return;
+    }
+
     if (!prochaine) {
       Alert.alert(t("common.success"), t("chantierDetail.lastStep"));
       return;
     }
+
     Alert.alert(
       t("chantierDetail.advanceTitle"),
       t("chantierDetail.advanceConfirm", { etape: prochaine }),
@@ -142,15 +153,9 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
     );
   }
 
-  const photosAvant = Array.isArray(chantier.photos_avant)
-    ? chantier.photos_avant
-    : [];
-  const photosApres = Array.isArray(chantier.photos_apres)
-    ? chantier.photos_apres
-    : [];
+  const photosAvant = Array.isArray(chantier.photos_avant) ? chantier.photos_avant : [];
+  const photosApres = Array.isArray(chantier.photos_apres) ? chantier.photos_apres : [];
 
-  // Mêmes règles que le backend : seul l'admin ou le technicien assigné
-  // peut avancer le chantier et ajouter des photos.
   const canManage =
     user?.role === "admin" ||
     (user?.role === "technicien" && chantier.technicien_id === user?.id);
@@ -180,7 +185,7 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
         <View style={styles.infoRow}>
           <Ionicons name="location-outline" size={15} color={COLORS.muted} />
           <Text style={styles.infoText}>
-            {chantier.ville || "—"} · {chantier.adresse || "—"}
+            {(chantier.ville || "—") + " · " + (chantier.adresse || "—")}
           </Text>
         </View>
         <View style={styles.infoRow}>
@@ -265,12 +270,12 @@ function PhotoSection({
   onAdd,
   canManage,
 }) {
+  const hasPhotos = Array.isArray(photos) && photos.length > 0;
+
   return (
     <>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {photos.length === 0 ? (
-        <Text style={styles.emptyPhotos}>{emptyLabel}</Text>
-      ) : (
+      {hasPhotos ? (
         <View style={styles.photoGrid}>
           {photos.map((url, i) => (
             <Image
@@ -280,6 +285,8 @@ function PhotoSection({
             />
           ))}
         </View>
+      ) : (
+        <Text style={styles.emptyPhotos}>{emptyLabel}</Text>
       )}
       {canManage ? (
         <Button
@@ -351,3 +358,4 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 });
+

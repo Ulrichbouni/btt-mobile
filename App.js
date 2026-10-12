@@ -19,6 +19,7 @@ import {
   getSession,
   clearSession,
   updateSessionUser,
+  normalizeSessionUser,
 } from "./src/services/auth";
 import api, { setOnUnauthorized } from "./src/services/api";
 
@@ -52,7 +53,6 @@ import OTPSetupScreen from "./src/screens/OTPSetupScreen";
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Thème de navigation aux couleurs du design system (fond crème, Poppins).
 const navTheme = {
   ...DefaultTheme,
   colors: {
@@ -73,8 +73,6 @@ const navTheme = {
   },
 };
 
-// En-têtes natifs des écrans de pile (thématisés ; restyle complet écran par
-// écran dans les passes suivantes).
 const stackHeader = {
   headerStyle: { backgroundColor: COLORS.bg },
   headerShadowVisible: false,
@@ -82,7 +80,6 @@ const stackHeader = {
   headerTitleStyle: { fontFamily: FONTS.bold, fontSize: 17 },
 };
 
-// Icône d'onglet : pilule beige derrière l'icône quand l'onglet est actif.
 const tabIcon =
   (nameFocused, nameOutline) =>
   ({ focused }) => (
@@ -95,14 +92,10 @@ const tabIcon =
     </View>
   );
 
-// Onglets par rôle :
-// - client : Accueil, Catalogue, Mes Chantiers, Paiement, Profil
-// - technicien / admin : Accueil, Catalogue, Chantiers, Missions, Paiement, Profil
-// L'onglet "Missions" n'est jamais exposé aux clients (le backend répond 403).
-// Paiement reste disponible pour tous (chacun peut avoir ses propres devis).
 function HomeTabs({ user, onLogout, onUserUpdated }) {
   const { t } = useI18n();
-  const role = user?.role || "client";
+  const safeUser = normalizeSessionUser(user) || { role: "client" };
+  const role = safeUser.role || "client";
   const isClient = role === "client";
 
   return (
@@ -129,7 +122,7 @@ function HomeTabs({ user, onLogout, onUserUpdated }) {
           tabBarIcon: tabIcon("home", "home-outline"),
         }}
       >
-        {({ navigation }) => <HomeScreen navigation={navigation} user={user} />}
+        {({ navigation }) => <HomeScreen navigation={navigation} user={safeUser} />}
       </Tab.Screen>
       <Tab.Screen
         name="Catalogue"
@@ -147,7 +140,7 @@ function HomeTabs({ user, onLogout, onUserUpdated }) {
         }}
       >
         {({ navigation }) => (
-          <MesChantiersScreen navigation={navigation} user={user} />
+          <MesChantiersScreen navigation={navigation} user={safeUser} />
         )}
       </Tab.Screen>
       {!isClient && (
@@ -159,7 +152,7 @@ function HomeTabs({ user, onLogout, onUserUpdated }) {
           }}
         >
           {({ navigation }) => (
-            <MissionsScreen navigation={navigation} user={user} />
+            <MissionsScreen navigation={navigation} user={safeUser} />
           )}
         </Tab.Screen>
       )}
@@ -180,7 +173,7 @@ function HomeTabs({ user, onLogout, onUserUpdated }) {
       >
         {({ navigation }) => (
           <ProfileScreen
-            user={user}
+            user={safeUser}
             onLogout={onLogout}
             onUserUpdated={onUserUpdated}
             navigation={navigation}
@@ -196,31 +189,32 @@ function AppInner() {
   const [ready, setReady] = useState(false);
 
   const handleLogout = useCallback(async () => {
-    await clearSession();
-    setUser(null);
+    try {
+      await clearSession();
+    } finally {
+      setUser(null);
+    }
   }, []);
 
-  // Relit le rôle courant en base (le backend ignore le role du JWT).
-  // Indispensable pour qu'une promotion client -> technicien soit visible
-  // sans reconnexion : la navigation est reconstruite dès que le rôle change.
   const refreshUser = useCallback(async () => {
     try {
       const { data } = await api.get("/auth/me");
-      if (!data?.role) return;
+      const nextUser = normalizeSessionUser(data?.user || data);
+      if (!nextUser) return;
+
       setUser((prev) => {
-        if (!prev) return prev;
-        if (
-          prev.role === data.role &&
-          prev.nom === data.nom &&
-          prev.email === data.email &&
-          prev.telephone === data.telephone
-        ) {
-          return prev;
-        }
-        return { ...prev, ...data };
+        const current = normalizeSessionUser(prev);
+        if (!current) return nextUser;
+        const sameUser =
+          current.role === nextUser.role &&
+          current.nom === nextUser.nom &&
+          current.email === nextUser.email &&
+          current.telephone === nextUser.telephone &&
+          current.id === nextUser.id;
+        return sameUser ? current : { ...current, ...nextUser };
       });
     } catch {
-      // Un 401 est déjà traité globalement par l'intercepteur (déconnexion).
+      // 401 is already handled globally.
     }
   }, []);
 
@@ -232,8 +226,20 @@ function AppInner() {
     const bootstrap = async () => {
       try {
         const { user: sessionUser, token } = await getSession();
-        if (mounted) setUser(sessionUser || null);
-        if (token) refreshUser();
+        const validSessionUser = normalizeSessionUser(sessionUser);
+
+        if (mounted) {
+          if (!validSessionUser) {
+            await clearSession();
+            setUser(null);
+          } else {
+            setUser(validSessionUser);
+          }
+        }
+
+        if (token && validSessionUser) {
+          await refreshUser();
+        }
       } catch {
         if (mounted) setUser(null);
       } finally {
@@ -248,16 +254,18 @@ function AppInner() {
     };
   }, [handleLogout, refreshUser]);
 
-  // Toute évolution de l'utilisateur (promotion, profil) est persistée.
   useEffect(() => {
     if (!user) return;
-    updateSessionUser(user);
+    updateSessionUser(user).catch(() => {
+      setUser(null);
+    });
   }, [user]);
 
-  // Au retour au premier plan : resynchronise le rôle avec le backend.
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") refreshUser();
+      if (state === "active") {
+        refreshUser();
+      }
     });
     return () => subscription.remove();
   }, [refreshUser]);
@@ -280,7 +288,6 @@ function AppInner() {
               )}
             </Stack.Screen>
 
-            {/* Calculateur et Notifications portent leur propre en-tête BTT-LUX. */}
             <Stack.Screen name="Calculator" component={CalculatorScreen} />
             <Stack.Screen name="Devis" component={DevisScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
@@ -306,7 +313,7 @@ function AppInner() {
             <Stack.Screen name="AssistantIA" component={AssistantIAScreen} />
             <Stack.Screen name="Annuaire" component={AnnuaireScreen} />
 
-            {user.role === "admin" && (
+            {normalizeSessionUser(user)?.role === "admin" && (
               <>
                 <Stack.Screen name="Admin" component={AdminDashboardScreen} />
                 <Stack.Screen name="AdminUsers">
@@ -336,7 +343,6 @@ function AppInner() {
           </>
         ) : (
           <>
-            {/* Hors session : accueil « Construire Durable » puis connexion. */}
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Login">
               {({ navigation }) => (
@@ -354,8 +360,6 @@ function AppInner() {
 }
 
 export default function App() {
-  // Poppins chargée avant tout rendu ; en cas d'échec (offline, store), on
-  // continue : React Native retombe nativement sur la police système.
   const [fontsLoaded, fontsError] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
@@ -384,3 +388,4 @@ const styles = StyleSheet.create({
   },
   tabPillActive: { backgroundColor: COLORS.primarySoft },
 });
+

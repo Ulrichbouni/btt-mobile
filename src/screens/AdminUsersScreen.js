@@ -24,18 +24,15 @@ export default function AdminUsersScreen({ currentUser }) {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("tous");
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({
-    nom: "",
-    email: "",
-    telephone: "",
-  });
+  const [editForm, setEditForm] = useState({ nom: "", email: "", telephone: "" });
   const [saving, setSaving] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState(null);
 
   const loadUsers = async () => {
     setLoading(true);
     try {
       const { data } = await api.get("/admin/utilisateurs");
-      setUsers(data);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
       Alert.alert(
         t("common.error"),
@@ -59,7 +56,7 @@ export default function AdminUsersScreen({ currentUser }) {
     try {
       await api.put(`/admin/utilisateurs/${userId}/role`, { role });
       Alert.alert(t("common.success"), t("admin.roleUpdated", { role }));
-      loadUsers();
+      await loadUsers();
     } catch (error) {
       Alert.alert(
         t("common.error"),
@@ -70,27 +67,30 @@ export default function AdminUsersScreen({ currentUser }) {
 
   const deleteUser = (userId) => {
     if (currentUser?.id === userId) {
-      Alert.alert(
-        t("admin.impossible"),
-        t("admin.selfDelete"),
-      );
+      Alert.alert(t("admin.impossible"), t("admin.selfDelete"));
       return;
     }
+
+    if (deletingUserId !== null) return;
+
     Alert.alert(t("admin.confirmation"), t("admin.deleteUserMsg"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("admin.delete"),
         style: "destructive",
         onPress: async () => {
+          setDeletingUserId(userId);
           try {
             await api.delete(`/admin/utilisateurs/${userId}`);
+            setUsers((prev) => prev.filter((u) => u.id !== userId));
             Alert.alert(t("common.success"), t("admin.userDeleted"));
-            loadUsers();
           } catch (error) {
             Alert.alert(
               t("common.error"),
               error.response?.data?.error || t("admin.suppressionImpossible"),
             );
+          } finally {
+            setDeletingUserId(null);
           }
         },
       },
@@ -98,6 +98,7 @@ export default function AdminUsersScreen({ currentUser }) {
   };
 
   const startEdit = (user) => {
+    if (!user) return;
     setEditingUser(user.id);
     setEditForm({
       nom: user.nom || "",
@@ -112,10 +113,12 @@ export default function AdminUsersScreen({ currentUser }) {
   };
 
   const saveEdit = async () => {
+    if (!editingUser) return;
     if (!editForm.nom.trim() || !editForm.email.trim()) {
       Alert.alert(t("common.error"), t("admin.needNameEmail"));
       return;
     }
+
     setSaving(true);
     try {
       await api.put(`/admin/utilisateurs/${editingUser}`, {
@@ -125,7 +128,7 @@ export default function AdminUsersScreen({ currentUser }) {
       });
       Alert.alert(t("common.success"), t("admin.userUpdated"));
       cancelEdit();
-      loadUsers();
+      await loadUsers();
     } catch (error) {
       Alert.alert(
         t("common.error"),
@@ -270,6 +273,7 @@ export default function AdminUsersScreen({ currentUser }) {
                   label={t("admin.delete")}
                   variant="danger"
                   onPress={() => deleteUser(user.id)}
+                  disabled={deletingUserId === user.id}
                 />
               </View>
             </View>
@@ -339,3 +343,4 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
 });
+

@@ -40,12 +40,13 @@ export default function AdminDevisScreen() {
   });
   const [saving, setSaving] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const load = async () => {
     setLoading(true);
     try {
       const { data } = await api.get("/devis/admin/tous");
-      setDevis(data);
+      setDevis(Array.isArray(data) ? data : []);
     } catch (e) {
       Alert.alert(t("common.error"), e.response?.data?.error || t("admin.chargementImpossible"));
     } finally {
@@ -63,24 +64,22 @@ export default function AdminDevisScreen() {
   }, [devis, filter]);
 
   const startEdit = (d) => {
+    if (!d) return;
     setEditingId(d.id);
     setEditForm({
-      remise_pourcentage: String(d.remise_pourcentage || 0),
-      frais_transport: String(d.frais_transport || 0),
-      frais_divers: String(d.frais_divers || 0),
+      remise_pourcentage: String(d.remise_pourcentage ?? 0),
+      frais_transport: String(d.frais_transport ?? 0),
+      frais_divers: String(d.frais_divers ?? 0),
     });
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEditForm({
-      remise_pourcentage: "",
-      frais_transport: "",
-      frais_divers: "",
-    });
+    setEditForm({ remise_pourcentage: "", frais_transport: "", frais_divers: "" });
   };
 
   const saveEdit = async () => {
+    if (editingId == null) return;
     setSaving(true);
     try {
       await api.put(`/devis/${editingId}`, {
@@ -121,25 +120,28 @@ export default function AdminDevisScreen() {
   };
 
   const supprimer = (id) => {
+    if (deletingId !== null) return;
     Alert.alert(t("admin.confirmation"), t("admin.supprimerQuestion"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("admin.delete"),
         style: "destructive",
         onPress: async () => {
+          setDeletingId(id);
           try {
             await api.delete(`/devis/${id}`);
+            setDevis((prev) => prev.filter((item) => item.id !== id));
             Alert.alert(t("common.success"), t("admin.supprime"));
-            await load();
           } catch (e) {
             Alert.alert(t("common.error"), e.response?.data?.error || t("admin.suppressionImpossible"));
+          } finally {
+            setDeletingId(null);
           }
         },
       },
     ]);
   };
 
-  // Téléchargement du PDF avec le token, puis partage.
   const voirPDF = async (id) => {
     setPdfLoading(id);
     try {
@@ -251,29 +253,30 @@ export default function AdminDevisScreen() {
               <Button
                 icon="pencil-outline"
                 label={t("admin.edit")}
-                                variant="soft"
+                variant="soft"
                 onPress={() => startEdit(d)}
               />
               {d.statut === "envoye" && d.total_final != null && (
                 <Button
                   icon="checkmark-circle-outline"
                   label={t("admin.validate")}
-                                    variant="green"
+                  variant="green"
                   onPress={() => valider(d.id)}
                 />
               )}
               <Button
                 icon="document-text-outline"
                 label={t("admin.pdf")}
-                                variant="primary"
+                variant="primary"
                 onPress={() => voirPDF(d.id)}
                 disabled={pdfLoading === d.id}
               />
               <Button
                 icon="trash-outline"
                 label={t("admin.delete")}
-                                variant="danger"
+                variant="danger"
                 onPress={() => supprimer(d.id)}
+                disabled={deletingId === d.id}
               />
             </View>
           </Card>
@@ -337,3 +340,4 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
 });
+

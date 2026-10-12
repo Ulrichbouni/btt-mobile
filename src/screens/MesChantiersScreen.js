@@ -30,8 +30,6 @@ import {
 } from "../constants/etapes";
 import { COLORS, FONTS, RADII, SPACING } from "../theme/theme";
 
-// Chaque rôle dispose de sa route : le client voit ses propres chantiers,
-// le technicien ceux issus de ses missions, l'admin voit tout.
 const endpointForRole = (role) => {
   if (role === "admin") return "/chantiers/admin/tous";
   if (role === "technicien") return "/chantiers/technicien/mes-chantiers";
@@ -52,11 +50,15 @@ export default function MesChantiersScreen({ navigation, user }) {
     setError(null);
     try {
       const { data } = await api.get(endpointForRole(role));
-      setChantiers(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setChantiers(list);
+      if (selectedId && !list.some((c) => c.id === selectedId)) {
+        setSelectedId(list[0]?.id ?? null);
+      }
     } catch (e) {
       setError(e.response?.data?.error || e.message || t("chantiers.loadError"));
     }
-  }, [role, t]);
+  }, [role, selectedId, t]);
 
   useEffect(() => {
     let active = true;
@@ -70,7 +72,6 @@ export default function MesChantiersScreen({ navigation, user }) {
     };
   }, [load]);
 
-  // Recharge quand l'onglet reprend le focus (nouvelle étape, photos...).
   useEffect(() => {
     if (!navigation?.addListener) return undefined;
     const unsubscribe = navigation.addListener("focus", load);
@@ -79,13 +80,15 @@ export default function MesChantiersScreen({ navigation, user }) {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await load();
-    setRefreshing(false);
+    try {
+      await load();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  const selected =
-    chantiers.find((c) => c.id === selectedId) || chantiers[0] || null;
-
+  const safeChantiers = Array.isArray(chantiers) ? chantiers : [];
+  const selected = safeChantiers.find((c) => c.id === selectedId) || safeChantiers[0] || null;
   const etapeIndex = selected ? ETAPES.indexOf(selected.etape) : -1;
 
   const steps = buildTimelineSteps({
@@ -111,15 +114,11 @@ export default function MesChantiersScreen({ navigation, user }) {
           icon="construct"
           tone="yellow"
           title={t("chantiers.title")}
-          subtitle={t("chantiers.count", { n: chantiers.length })}
+          subtitle={t("chantiers.count", { n: safeChantiers.length })}
         />
 
         {loading ? (
-          <ActivityIndicator
-            size="large"
-            color={COLORS.primary}
-            style={styles.loader}
-          />
+          <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
         ) : error ? (
           <>
             <EmptyState
@@ -134,24 +133,16 @@ export default function MesChantiersScreen({ navigation, user }) {
               onPress={load}
             />
           </>
-        ) : chantiers.length === 0 ? (
+        ) : safeChantiers.length === 0 ? (
           <EmptyState
             icon="construct-outline"
             title={t("chantiers.title")}
-            message={
-              role === "client"
-                ? t("chantiers.emptyClient")
-                : t("chantiers.emptyTech")
-            }
+            message={role === "client" ? t("chantiers.emptyClient") : t("chantiers.emptyTech")}
           />
         ) : (
           <>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.selector}
-            >
-              {chantiers.map((c) => {
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selector}>
+              {safeChantiers.map((c) => {
                 const isActive = selected?.id === c.id;
                 const progress = progressionPourcent(c.etape);
                 return (
@@ -162,20 +153,13 @@ export default function MesChantiersScreen({ navigation, user }) {
                     style={[styles.selectorCard, isActive && styles.selectorActive]}
                   >
                     <Text
-                      style={[
-                        styles.selectorTitle,
-                        isActive && styles.selectorTitleActive,
-                      ]}
+                      style={[styles.selectorTitle, isActive && styles.selectorTitleActive]}
                       numberOfLines={1}
                     >
-                      {c.client_nom ||
-                        t("chantiers.chantierLabel", { id: c.id })}
+                      {c.client_nom || t("chantiers.chantierLabel", { id: c.id })}
                     </Text>
                     <Text
-                      style={[
-                        styles.selectorSub,
-                        isActive && styles.selectorSubActive,
-                      ]}
+                      style={[styles.selectorSub, isActive && styles.selectorSubActive]}
                       numberOfLines={1}
                     >
                       {c.ville || "—"}
@@ -184,21 +168,14 @@ export default function MesChantiersScreen({ navigation, user }) {
                     <ProgressBar
                       progress={progress}
                       color={isActive ? "#FFFFFF" : COLORS.green}
-                      trackColor={
-                        isActive ? "rgba(255, 255, 255, 0.32)" : "#EFE7DA"
-                      }
+                      trackColor={isActive ? "rgba(255, 255, 255, 0.32)" : "#EFE7DA"}
                       height={6}
                       style={styles.selectorBar}
                     />
                     <Text
-                      style={[
-                        styles.selectorProgress,
-                        isActive && styles.selectorProgressActive,
-                      ]}
+                      style={[styles.selectorProgress, isActive && styles.selectorProgressActive]}
                     >
-                      {t("chantiers.progress", {
-                        n: Math.round(progress),
-                      })}
+                      {t("chantiers.progress", { n: Math.round(progress) })}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -209,9 +186,7 @@ export default function MesChantiersScreen({ navigation, user }) {
               <Card style={styles.stats} padding={16}>
                 <Stat
                   icon="resize-outline"
-                  value={
-                    selected.surface ? `${selected.surface} m²` : "—"
-                  }
+                  value={selected.surface ? `${selected.surface} m²` : "—"}
                   label={t("chantiers.surface")}
                 />
                 <View style={styles.statDivider} />
@@ -339,3 +314,4 @@ const styles = StyleSheet.create({
   stepsCount: { color: COLORS.primary, fontFamily: FONTS.semiBold, fontSize: 14 },
   detailBtn: { marginTop: 8 },
 });
+

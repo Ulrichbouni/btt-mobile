@@ -6,8 +6,22 @@ const SECURE_TOKEN_KEY = "btt_lux_auth_token";
 const USER_KEY = "user";
 const SESSION_VERSION_KEY = "session_version";
 
-// --- Jeton : SecureStore (Keychain/Keystore) avec repli AsyncStorage ---
-// L'ancien jeton stocké dans AsyncStorage est migré au premier accès.
+export const normalizeSessionUser = (user) => {
+  if (!user || typeof user !== "object") return null;
+
+  const normalized = { ...user };
+  const userId = normalized.id ?? normalized.userId ?? normalized.user_id ?? null;
+
+  if (!normalized.role) {
+    normalized.role = "client";
+  }
+
+  if (userId !== null) {
+    normalized.id = userId;
+  }
+
+  return normalized;
+};
 
 const readLegacyToken = async () => {
   try {
@@ -22,29 +36,28 @@ export const readToken = async () => {
     const secure = await SecureStore.getItemAsync(SECURE_TOKEN_KEY);
     if (secure) return secure;
   } catch {
-    // SecureStore indisponible (ex. simulateur web) → repli AsyncStorage.
+    // SecureStore unavailable → fallback to AsyncStorage.
   }
+
   const legacy = await readLegacyToken();
   if (legacy) {
-    // Migration : on copie dans le stockage sécurisé puis on supprime l'ancien.
     try {
       await SecureStore.setItemAsync(SECURE_TOKEN_KEY, legacy);
       await AsyncStorage.removeItem(TOKEN_KEY);
     } catch {
-      // Si la copie échoue, on conserve le jeton en mémoire seulement.
+      // keep token in memory only if migration fails
     }
     return legacy;
   }
+
   return null;
 };
 
 const writeToken = async (token) => {
   try {
     await SecureStore.setItemAsync(SECURE_TOKEN_KEY, String(token));
-    // Supprime l'ancienne copie non sécurisée si elle existe.
     await AsyncStorage.removeItem(TOKEN_KEY);
   } catch {
-    // Repli : stockage legacy si SecureStore échoue.
     await AsyncStorage.setItem(TOKEN_KEY, String(token));
   }
 };
@@ -55,6 +68,7 @@ const deleteToken = async () => {
   } catch {
     // ignore
   }
+
   try {
     await AsyncStorage.removeItem(TOKEN_KEY);
   } catch {
@@ -67,7 +81,10 @@ export const saveSession = async (token, user) => {
     throw new Error("A token is required to save the session.");
   }
 
-  const normalizedUser = user && typeof user === "object" ? user : { email: user };
+  const normalizedUser = normalizeSessionUser(user);
+  if (!normalizedUser) {
+    throw new Error("A valid user is required to save the session.");
+  }
 
   await writeToken(token);
   await AsyncStorage.multiSet([
@@ -91,14 +108,15 @@ export const getSession = async () => {
       return { token: null, user: null, isAuthenticated: false };
     }
 
-    const user = JSON.parse(userValue);
+    const parsedUser = JSON.parse(userValue);
+    const user = normalizeSessionUser(parsedUser);
 
     return {
       token,
       user,
       isAuthenticated: Boolean(token && user && version),
     };
-  } catch (error) {
+  } catch {
     return { token: null, user: null, isAuthenticated: false };
   }
 };
@@ -108,11 +126,9 @@ export const isSessionValid = async () => {
   return Boolean(token && user);
 };
 
-// Met à jour l'utilisateur en session sans toucher au token.
-// Utilisé après GET/PUT /auth/me pour refléter une promotion de rôle
-// (client -> technicien) sans exiger une reconnexion.
 export const updateSessionUser = async (user) => {
-  if (!user || typeof user !== "object") {
+  const normalizedUser = normalizeSessionUser(user);
+  if (!normalizedUser) {
     throw new Error("A user object is required to update the session.");
   }
 
@@ -122,15 +138,13 @@ export const updateSessionUser = async (user) => {
   }
 
   await AsyncStorage.multiSet([
-    [USER_KEY, JSON.stringify(user)],
+    [USER_KEY, JSON.stringify(normalizedUser)],
     [SESSION_VERSION_KEY, "1"],
   ]);
 
-  return { token, user, isAuthenticated: true };
+  return { token, user: normalizedUser, isAuthenticated: true };
 };
 
-// Remplace le jeton courant (ex. : nouvelle version après changement de
-// mot de passe, l'ancien étant révoqué côté backend).
 export const updateSessionToken = async (token) => {
   if (!token) return null;
   await writeToken(token);
@@ -141,3 +155,4 @@ export const clearSession = async () => {
   await deleteToken();
   await AsyncStorage.multiRemove([USER_KEY, SESSION_VERSION_KEY]);
 };
+
