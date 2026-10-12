@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View, Alert } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import {
   AppHeader,
@@ -11,6 +11,8 @@ import {
   Screen,
   SectionHeader,
   StatusPill,
+  useAppDialog,
+  ScreenErrorBoundary,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
@@ -26,6 +28,7 @@ const toDateISO = (yyyyMmDd) => `${yyyyMmDd}T12:00:00.000Z`;
 
 export default function AdminMissionsScreen() {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [missions, setMissions] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -50,7 +53,7 @@ export default function AdminMissionsScreen() {
       setMissions(m.data);
       setUsers(u.data.filter((x) => x.role === "technicien"));
     } catch (e) {
-      Alert.alert(t("common.error"), e.response?.data?.error || t("admin.chargementImpossible"));
+      alert(t("common.error"), e.response?.data?.error || t("admin.chargementImpossible"));
     } finally {
       setLoading(false);
     }
@@ -77,15 +80,15 @@ export default function AdminMissionsScreen() {
 
   const submit = async () => {
     if (!form.technicien_id) {
-      Alert.alert(t("common.error"), t("admin.needTech"));
+      alert(t("common.error"), t("admin.needTech"));
       return;
     }
     if (!editingId && !form.devis_id) {
-      Alert.alert(t("common.error"), t("admin.needDevisId"));
+      alert(t("common.error"), t("admin.needDevisId"));
       return;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date_visite)) {
-      Alert.alert(t("common.error"), t("admin.badDate"));
+      alert(t("common.error"), t("admin.badDate"));
       return;
     }
 
@@ -99,14 +102,14 @@ export default function AdminMissionsScreen() {
           date_visite: isoDate,
           statut: form.statut,
         });
-        Alert.alert(t("common.success"), t("admin.missionUpdated"));
+        alert(t("common.success"), t("admin.missionUpdated"));
       } else {
         await api.post("/missions", {
           devis_id: Number(form.devis_id),
           technicien_id: form.technicien_id,
           date_visite: isoDate,
         });
-        Alert.alert(t("common.success"), t("admin.missionCreated"));
+        alert(t("common.success"), t("admin.missionCreated"));
       }
       resetForm();
       await load();
@@ -116,7 +119,7 @@ export default function AdminMissionsScreen() {
         details?.map((d) => `${d.champ}: ${d.message}`).join("\n") ||
         e.response?.data?.error ||
         "Opération impossible";
-      Alert.alert(t("common.error"), msg);
+      alert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -135,7 +138,7 @@ export default function AdminMissionsScreen() {
   };
 
   const remove = (id) => {
-    Alert.alert(t("admin.confirmation"), t("admin.deleteMissionMsg"), [
+    alert(t("admin.confirmation"), t("admin.deleteMissionMsg"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("admin.delete"),
@@ -145,7 +148,7 @@ export default function AdminMissionsScreen() {
             await api.delete(`/missions/${id}`);
             await load();
           } catch (e) {
-            Alert.alert(
+            alert(
               t("common.error"),
               e.response?.data?.error || t("admin.suppressionImpossible"),
             );
@@ -156,7 +159,7 @@ export default function AdminMissionsScreen() {
   };
 
   const validerMesures = (missionId) => {
-    Alert.alert(
+    alert(
       t("admin.validerMesuresTitle"),
       t("admin.validerMesuresMsg"),
       [
@@ -166,10 +169,10 @@ export default function AdminMissionsScreen() {
           onPress: async () => {
             try {
               await api.put(`/missions/${missionId}/valider`);
-              Alert.alert(t("common.success"), t("admin.mesuresValidees"));
+              alert(t("common.success"), t("admin.mesuresValidees"));
               await load();
             } catch (e) {
-              Alert.alert(
+              alert(
                 t("common.error"),
                 e.response?.data?.error || t("admin.validationImpossible"),
               );
@@ -184,6 +187,7 @@ export default function AdminMissionsScreen() {
     s === "tous" ? t("common.all") : t(`statuses.${s}`);
 
   return (
+    <ScreenErrorBoundary fallbackTitle={t("admin.ecranInaccessible")}>
     <Screen scroll contentStyle={styles.content}>
       <AppHeader title={t("admin.missions")} showBell onBell={() => {}} />
 
@@ -350,7 +354,9 @@ export default function AdminMissionsScreen() {
           </Card>
         ))
       )}
+      {dialog}
     </Screen>
+    </ScreenErrorBoundary>
   );
 }
 

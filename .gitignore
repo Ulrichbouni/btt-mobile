@@ -60,3 +60,9 @@ android/.cxx/
 ios/Pods/
 ios/build/
 ios/*.xcuserdata/
+
+# Captures d'écran de debug (non destinées au dépôt)
+images/
+
+# État local d'outils tiers
+.freebuff/

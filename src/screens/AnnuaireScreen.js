@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import {
-  Alert,
   Linking,
   ScrollView,
   StyleSheet,
@@ -20,6 +19,7 @@ import {
   SearchBar,
   SectionHeader,
   StatusPill,
+  useAppDialog,
 } from "../components";
 import { useI18n } from "../i18n";
 import { ANNUAIRE_CITIES, POSEURS } from "../data/poseurs";
@@ -35,6 +35,7 @@ const normalize = (s) =>
 // avec bouton WhatsApp. Données locales de démonstration (src/data/poseurs.js).
 export default function AnnuaireScreen({ navigation }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("all");
 
@@ -57,7 +58,7 @@ export default function AnnuaireScreen({ navigation }) {
       await Linking.openURL(url);
     } catch {
       // Repli gracieux : on affiche le numéro plutôt que d'échouer en silence.
-      Alert.alert(t("common.appName"), `WhatsApp — ${poseur.telephone}`);
+      alert(t("common.appName"), `WhatsApp — ${poseur.telephone}`);
     }
   };
 
@@ -166,6 +167,7 @@ export default function AnnuaireScreen({ navigation }) {
           ))
         )}
       </ScrollView>
+      {dialog}
     </View>
   );
 }

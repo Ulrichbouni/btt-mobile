@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import {
@@ -11,6 +11,7 @@ import {
   Screen,
   SectionHeader,
   StatusPill,
+  useAppDialog,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
@@ -24,6 +25,7 @@ const METHODS = [
 
 export default function PaiementScreen({ route, navigation }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [montant, setMontant] = useState("");
   const [phone, setPhone] = useState("");
   const [methode, setMethode] = useState("mtn");
@@ -88,7 +90,7 @@ export default function PaiementScreen({ route, navigation }) {
 
   const choisirMethode = (key) => {
     if (key === "card") {
-      Alert.alert(t("paiement.method"), t("paiement.cardUnavailable"));
+      alert(t("paiement.method"), t("paiement.cardUnavailable"));
       return;
     }
     setMethode(key);
@@ -96,11 +98,11 @@ export default function PaiementScreen({ route, navigation }) {
 
   const payer = async () => {
     if (!montant || montant <= 0)
-      return Alert.alert(t("common.error"), t("paiement.invalidAmount"));
+      return alert(t("common.error"), t("paiement.invalidAmount"));
     if (!phone || phone.length < 8)
-      return Alert.alert(t("common.error"), t("paiement.invalidPhone"));
+      return alert(t("common.error"), t("paiement.invalidPhone"));
     if (devisNonValide)
-      return Alert.alert(t("common.error"), t("paiement.devisNotValidated"));
+      return alert(t("common.error"), t("paiement.devisNotValidated"));
     setLoading(true);
     try {
       const { data } = await api.post("/paiements/initier", {
@@ -109,13 +111,13 @@ export default function PaiementScreen({ route, navigation }) {
         telephone: phone,
         devis_id: devisId ? parseInt(devisId) : null,
       });
-      Alert.alert(
+      alert(
         t("paiement.initiated"),
         t("paiement.initiatedMessage", { ref: data.reference }),
       );
       fetchHistorique();
     } catch (err) {
-      Alert.alert(
+      alert(
         t("common.error"),
         err.response?.data?.error || t("paiement.payFailed"),
       );
@@ -247,6 +249,7 @@ export default function PaiementScreen({ route, navigation }) {
           </Card>
         ))
       )}
+      {dialog}
     </Screen>
   );
 }

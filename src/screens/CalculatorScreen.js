@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import {
   AppHeader,
@@ -10,6 +10,7 @@ import {
   FilterPill,
   Screen,
   SectionHeader,
+  useAppDialog,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
@@ -26,6 +27,7 @@ const TYPES = [
 
 export default function CalculatorScreen({ navigation, route }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [produits, setProduits] = useState([]);
   const [produitId, setProduitId] = useState(null);
   const [typeBatiment, setTypeBatiment] = useState("residentiel");
@@ -87,15 +89,15 @@ export default function CalculatorScreen({ navigation, route }) {
     const etage = toNumber(form.etage);
 
     if (!longueur || longueur <= 0 || !largeur || largeur <= 0) {
-      Alert.alert(t("common.error"), t("calculator.positiveDims"));
+      alert(t("common.error"), t("calculator.positiveDims"));
       return;
     }
     if (!produitId) {
-      Alert.alert(t("common.error"), t("calculator.selectProduct"));
+      alert(t("common.error"), t("calculator.selectProduct"));
       return;
     }
     if (etage !== null && (etage < 0 || !Number.isInteger(etage))) {
-      Alert.alert(t("common.error"), t("calculator.floorInteger"));
+      alert(t("common.error"), t("calculator.floorInteger"));
       return;
     }
 
@@ -118,7 +120,7 @@ export default function CalculatorScreen({ navigation, route }) {
         details?.map((d) => `${d.champ}: ${d.message}`).join("\n") ||
         e.response?.data?.error ||
         t("calculator.estimateFailed");
-      Alert.alert(t("common.error"), msg);
+      alert(t("common.error"), msg);
     } finally {
       setLoading(false);
     }
@@ -273,6 +275,7 @@ export default function CalculatorScreen({ navigation, route }) {
           />
         </Card>
       )}
+      {dialog}
     </Screen>
   );
 }

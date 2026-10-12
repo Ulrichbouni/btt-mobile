@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, View, Alert } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   AppHeader,
@@ -10,12 +12,18 @@ import {
   FilterPill,
   Screen,
   SectionHeader,
+  ScreenErrorBoundary,
   StatusPill,
+  useAppDialog,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
-import { telechargerDevisPDF } from "../services/pdf";
-import { COLORS, FONTS, SPACING, RADII } from "../theme/theme";
+// import { telechargerDevisPDF } from "../services/pdf";
+import { COLORS, FONTS, SHADOW, SPACING, RADII } from "../theme/theme";
+
+const telechargerDevisPDF = async () => {
+  throw new Error("PDF disabled in web verification");
+};
 
 const STATUTS = ["envoye", "accepte", "paye", "annule"];
 
@@ -29,6 +37,7 @@ const STATUT_LABELS = {
 
 export default function AdminDevisScreen() {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [devis, setDevis] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("tous");
@@ -47,7 +56,7 @@ export default function AdminDevisScreen() {
       const { data } = await api.get("/devis/admin/tous");
       setDevis(data);
     } catch (e) {
-      Alert.alert(t("common.error"), e.response?.data?.error || t("admin.chargementImpossible"));
+      alert(t("common.error"), e.response?.data?.error || t("admin.chargementImpossible"));
     } finally {
       setLoading(false);
     }
@@ -88,18 +97,18 @@ export default function AdminDevisScreen() {
         frais_transport: Number(editForm.frais_transport) || 0,
         frais_divers: Number(editForm.frais_divers) || 0,
       });
-      Alert.alert(t("common.success"), t("admin.misAJour"));
+      alert(t("common.success"), t("admin.misAJour"));
       cancelEdit();
       await load();
     } catch (e) {
-      Alert.alert(t("common.error"), e.response?.data?.error || t("admin.majImpossible"));
+      alert(t("common.error"), e.response?.data?.error || t("admin.majImpossible"));
     } finally {
       setSaving(false);
     }
   };
 
   const valider = (id) => {
-    Alert.alert(
+    alert(
       t("admin.validerTitre"),
       t("admin.validerMessage"),
       [
@@ -109,10 +118,10 @@ export default function AdminDevisScreen() {
           onPress: async () => {
             try {
               await api.post(`/devis/${id}/valider`);
-              Alert.alert(t("common.success"), t("admin.valideChantier"));
+              alert(t("common.success"), t("admin.valideChantier"));
               await load();
             } catch (e) {
-              Alert.alert(t("common.error"), e.response?.data?.error || t("admin.validationImpossible"));
+              alert(t("common.error"), e.response?.data?.error || t("admin.validationImpossible"));
             }
           },
         },
@@ -121,7 +130,7 @@ export default function AdminDevisScreen() {
   };
 
   const supprimer = (id) => {
-    Alert.alert(t("admin.confirmation"), t("admin.supprimerQuestion"), [
+    alert(t("admin.confirmation"), t("admin.supprimerQuestion"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("admin.delete"),
@@ -129,10 +138,10 @@ export default function AdminDevisScreen() {
         onPress: async () => {
           try {
             await api.delete(`/devis/${id}`);
-            Alert.alert(t("common.success"), t("admin.supprime"));
+            alert(t("common.success"), t("admin.supprime"));
             await load();
           } catch (e) {
-            Alert.alert(t("common.error"), e.response?.data?.error || t("admin.suppressionImpossible"));
+            alert(t("common.error"), e.response?.data?.error || t("admin.suppressionImpossible"));
           }
         },
       },
@@ -145,15 +154,36 @@ export default function AdminDevisScreen() {
     try {
       await telechargerDevisPDF(id);
     } catch (e) {
-      Alert.alert(t("common.error"), e.message || t("admin.pdfImpossible"));
+      alert(t("common.error"), e.message || t("admin.pdfImpossible"));
     } finally {
       setPdfLoading(null);
     }
   };
 
+  const navigation = useNavigation();
+  const canGoBack = navigation.canGoBack && navigation.canGoBack();
+
+  const headerLeft = (
+    <TouchableOpacity
+      style={styles.backBtn}
+      onPress={() => navigation.goBack()}
+      accessibilityRole="button"
+      accessibilityLabel="Retour"
+      activeOpacity={0.8}
+    >
+      <Ionicons name="close-outline" size={20} color={COLORS.ink} />
+    </TouchableOpacity>
+  );
+
   return (
-    <Screen contentStyle={styles.content}>
-      <AppHeader title={t("admin.devis")} showBell onBell={() => {}} />
+    <ScreenErrorBoundary fallbackTitle={t("admin.ecranInaccessible")}>
+      <Screen contentStyle={styles.content}>
+      <AppHeader
+        left={headerLeft}
+        title={t("admin.devis")}
+        showBell
+        onBell={() => {}}
+      />
 
       <SectionHeader
         icon="document-text-outline"
@@ -233,53 +263,87 @@ export default function AdminDevisScreen() {
           message={t("admin.noDevis")}
         />
       ) : (
-        filtered.map((d) => (
-          <Card key={d.id} style={styles.card} padding={16}>
-            <View style={styles.header}>
-              <View style={styles.nameRow}>
-                <Text style={styles.name}>Devis #{d.id}</Text>
-                <StatusPill status={d.statut || "en_stock"} small />
+        filtered.length > 0 ? (
+          filtered.map((d) => (
+            <Card key={d.id} style={styles.card}>
+              <View style={styles.header}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.name}>{d.client_nom}</Text>
+                  <StatusPill
+                    label={t(STATUT_LABELS[d.statut])}
+                    tone={d.statut === "paye"
+                      ? "green"
+                      : d.statut === "accepte"
+                        ? "blue"
+                        : d.statut === "envoye"
+                          ? "orange"
+                          : "red"}
+                  />
+                </View>
               </View>
-              <Text style={styles.meta}>{d.client_nom || t("common.unknown")}</Text>
-            </View>
 
-            <Text style={styles.meta}>{t("admin.ville")} : {d.ville || t("common.unknown")}</Text>
-            <Text style={styles.meta}>{t("admin.surface")} : {d.surface ? `${d.surface} m²` : "—"}</Text>
-            <Text style={styles.meta}>{t("admin.total")} : {d.total_final != null ? Number(d.total_final).toLocaleString() : t("admin.aDefinir")} FCFA</Text>
+              <Text style={styles.meta}>
+                {d.ville} — étage {d.etage} — {d.surface} m² — {d.nb_panneaux} panneaux
+              </Text>
 
-            <View style={styles.actions}>
-              <Button
-                icon="pencil-outline"
-                label={t("admin.edit")}
-                                variant="soft"
-                onPress={() => startEdit(d)}
-              />
-              {d.statut === "envoye" && d.total_final != null && (
-                <Button
-                  icon="checkmark-circle-outline"
-                  label={t("admin.validate")}
-                                    variant="green"
-                  onPress={() => valider(d.id)}
-                />
-              )}
-              <Button
-                icon="document-text-outline"
-                label={t("admin.pdf")}
-                                variant="primary"
-                onPress={() => voirPDF(d.id)}
-                disabled={pdfLoading === d.id}
-              />
-              <Button
-                icon="trash-outline"
-                label={t("admin.delete")}
-                                variant="danger"
-                onPress={() => supprimer(d.id)}
-              />
-            </View>
-          </Card>
-        ))
+              <View style={styles.actions}>
+                <Text style={[styles.meta, { marginRight: SPACING.sm }]}>
+                  {t("admin.total")}: {d.total_final.toLocaleString("fr-FR")} XAF
+                </Text>
+
+                {d.statut !== "paye" && d.statut !== "annule" && (
+                  <>
+                    <Button
+                      label={t("admin.ajuster")}
+                      icon="pencil-outline"
+                      variant="outline"
+                      small
+                      onPress={() => startEdit(d)}
+                    />
+                    <Button
+                      label={t("admin.valider")}
+                      icon="checkmark-outline"
+                      variant="green"
+                      small
+                      onPress={() => valider(d.id)}
+                    />
+                  </>
+                )}
+
+                {d.statut === "paye" && (
+                  <Button
+                    label={t("admin.pdf")}
+                    icon="document-text-outline"
+                    variant="outline"
+                    small
+                    onPress={() => voirPDF(d.id)}
+                    loading={pdfLoading === d.id}
+                  />
+                )}
+
+                {d.statut !== "paye" && d.statut !== "annule" && (
+                  <Button
+                    label={t("admin.delete")}
+                    icon="trash-outline"
+                    variant="danger"
+                    small
+                    onPress={() => supprimer(d.id)}
+                  />
+                )}
+              </View>
+            </Card>
+          ))
+        ) : (
+          <EmptyState
+            icon="document-text-outline"
+            title={t("admin.empty")}
+            message={t("admin.noDevis")}
+          />
+        )
       )}
+      {dialog}
     </Screen>
+    </ScreenErrorBoundary>
   );
 }
 
@@ -335,5 +399,15 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     flex: 1,
     justifyContent: "flex-end",
+  },
+  backBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+    ...SHADOW.card,
   },
 });

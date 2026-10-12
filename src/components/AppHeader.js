@@ -15,13 +15,18 @@ export default function AppHeader({
   unreadCount = 0,
   loading = false,
   onBell,
+  left,
   right,
 }) {
   return (
     <View style={styles.row}>
-      <View style={styles.logo}>
-        <Ionicons name="home" size={24} color="#FFFFFF" />
-      </View>
+      {left ? (
+        left
+      ) : (
+        <View style={styles.logo}>
+          <Ionicons name="home" size={24} color="#FFFFFF" />
+        </View>
+      )}
 
       <View style={styles.titleWrap}>
         <Text style={styles.title} numberOfLines={1}>
@@ -85,6 +90,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   titleWrap: { flex: 1, marginLeft: 12, marginRight: 10 },
+  leftGap: { width: 46, height: 46, marginRight: 10 },
+  backBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+    ...SHADOW.card,
+  },
   title: {
     color: COLORS.ink,
     fontFamily: FONTS.extraBold,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import {
@@ -12,6 +12,7 @@ import {
   Screen,
   SectionHeader,
   StatusPill,
+  useAppDialog,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
@@ -29,6 +30,7 @@ export default function ProfileScreen({
   navigation,
 }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [form, setForm] = useState({
     nom: "",
     email: "",
@@ -91,10 +93,10 @@ export default function ProfileScreen({
         await updateSessionUser(merged);
         if (onUserUpdated) onUserUpdated(merged);
       }
-      Alert.alert(t("common.success"), t("profile.updated"));
+      alert(t("common.success"), t("profile.updated"));
       setEditing(false);
     } catch (err) {
-      Alert.alert(
+      alert(
         t("common.error"),
         err.response?.data?.error || t("profile.updateError"),
       );
@@ -232,6 +234,7 @@ export default function ProfileScreen({
         onPress={logout}
         style={styles.logout}
       />
+      {dialog}
     </Screen>
   );
 }

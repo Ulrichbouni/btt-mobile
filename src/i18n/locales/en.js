@@ -120,6 +120,7 @@ export default {
     validationImpossible: "Unable to validate",
     suppressionImpossible: "Unable to delete",
     pdfImpossible: "Unable to open the PDF",
+    ecranInaccessible: "Screen unavailable",
     editUser: "Edit user",
     prod: {
       nom: "Name (FR)",
@@ -222,6 +223,7 @@ export default {
     forgotPasswordMessage:
       "Contact BTT-LUX support to reset your password.",
     loginCta: "Sign in",
+    devQuickLogin: "Admin login (dev)",
     twoFactorTitle: "2FA verification",
     twoFactorMessage:
       "Enter the 6-digit code from your authenticator app.",

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
 import {
@@ -10,6 +10,7 @@ import {
   Screen,
   SectionHeader,
   StatusPill,
+  useAppDialog,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
@@ -18,6 +19,7 @@ import { COLORS, FONTS, RADII, SPACING } from "../theme/theme";
 
 export default function SaisieMesuresScreen({ route, navigation }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const missionId = route?.params?.missionId;
   const mission = route?.params?.mission;
 
@@ -45,7 +47,7 @@ export default function SaisieMesuresScreen({ route, navigation }) {
   const addPhotos = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(t("common.error"), t("mesures.permission"));
+      alert(t("common.error"), t("mesures.permission"));
       return;
     }
 
@@ -75,7 +77,7 @@ export default function SaisieMesuresScreen({ route, navigation }) {
       }
       setPhotoUrls((prev) => [...prev, ...urls]);
     } catch (e) {
-      Alert.alert(
+      alert(
         t("common.error"),
         e.response?.data?.error || t("mesures.uploadError"),
       );
@@ -86,19 +88,19 @@ export default function SaisieMesuresScreen({ route, navigation }) {
 
   const submit = async () => {
     if (!missionId) {
-      Alert.alert(t("common.error"), t("mesures.missionUnknown"));
+      alert(t("common.error"), t("mesures.missionUnknown"));
       return;
     }
     if (!longueur || longueur <= 0) {
-      Alert.alert(t("common.error"), t("mesures.invalidLength"));
+      alert(t("common.error"), t("mesures.invalidLength"));
       return;
     }
     if (!hauteur || hauteur <= 0) {
-      Alert.alert(t("common.error"), t("mesures.invalidHeight"));
+      alert(t("common.error"), t("mesures.invalidHeight"));
       return;
     }
     if (!surfaceReelle || surfaceReelle <= 0) {
-      Alert.alert(t("common.error"), t("mesures.invalidSurface"));
+      alert(t("common.error"), t("mesures.invalidSurface"));
       return;
     }
 
@@ -119,7 +121,7 @@ export default function SaisieMesuresScreen({ route, navigation }) {
     setLoading(true);
     try {
       await api.post(`/missions/${missionId}/mesures`, payload);
-      Alert.alert(
+      alert(
         t("mesures.sentTitle"),
         t("mesures.sentMessage", { id: missionId }),
         [{ text: "OK", onPress: () => navigation?.goBack?.() }],
@@ -130,7 +132,7 @@ export default function SaisieMesuresScreen({ route, navigation }) {
         details?.map((d) => `${d.champ}: ${d.message}`).join("\n") ||
         e.response?.data?.error ||
         t("mesures.sendFailed");
-      Alert.alert(t("common.error"), msg);
+      alert(t("common.error"), msg);
     } finally {
       setLoading(false);
     }
@@ -245,6 +247,7 @@ export default function SaisieMesuresScreen({ route, navigation }) {
         small
         style={styles.tag}
       />
+      {dialog}
     </Screen>
   );
 }

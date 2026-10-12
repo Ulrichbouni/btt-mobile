@@ -21,6 +21,7 @@
         "backgroundColor": "#faf7f2"
       },
       "package": "com.bttlux.app",
+      "versionCode": 4,
       "permissions": [
         "CAMERA",
         "READ_MEDIA_IMAGES",

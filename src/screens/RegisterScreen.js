@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
-import { AuthShell, Button, Field } from "../components";
+import { AuthShell, Button, Field, useAppDialog } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
 import { COLORS, FONTS } from "../theme/theme";
 
 export default function RegisterScreen({ navigation }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [step, setStep] = useState("form"); // 'form' | 'verify'
   const [form, setForm] = useState({
     nom: "",
@@ -37,19 +38,19 @@ export default function RegisterScreen({ navigation }) {
     const email = form.email.trim().toLowerCase();
 
     if (!form.nom.trim() || !email || !form.password || !form.confirmPassword) {
-      Alert.alert(t("common.error"), t("auth.fillAllFields"));
+      alert(t("common.error"), t("auth.fillAllFields"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      Alert.alert(t("common.error"), t("auth.invalidEmail"));
+      alert(t("common.error"), t("auth.invalidEmail"));
       return;
     }
     if (form.password !== form.confirmPassword) {
-      Alert.alert(t("common.error"), t("auth.passwordsMismatch"));
+      alert(t("common.error"), t("auth.passwordsMismatch"));
       return;
     }
     if (form.password.length < 6) {
-      Alert.alert(t("common.error"), t("auth.passwordTooShort"));
+      alert(t("common.error"), t("auth.passwordTooShort"));
       return;
     }
 
@@ -58,9 +59,9 @@ export default function RegisterScreen({ navigation }) {
       await api.post("/auth/request-otp-email", { email });
       setForm((current) => ({ ...current, email }));
       setStep("verify");
-      Alert.alert(t("auth.codeSentTitle"), t("auth.codeSentMessage"));
+      alert(t("auth.codeSentTitle"), t("auth.codeSentMessage"));
     } catch (error) {
-      Alert.alert(
+      alert(
         t("common.error"),
         error.response?.data?.error || t("auth.sendCodeFailed"),
       );
@@ -74,7 +75,7 @@ export default function RegisterScreen({ navigation }) {
     const code = verificationCode.trim();
 
     if (!/^\d{6}$/.test(code)) {
-      Alert.alert(t("common.error"), t("auth.invalidCode"));
+      alert(t("common.error"), t("auth.invalidCode"));
       return;
     }
 
@@ -92,10 +93,10 @@ export default function RegisterScreen({ navigation }) {
         email_verification_token: data.email_verification_token,
       });
 
-      Alert.alert(t("common.success"), t("auth.accountCreated"));
+      alert(t("common.success"), t("auth.accountCreated"));
       navigation.goBack();
     } catch (error) {
-      Alert.alert(
+      alert(
         t("common.error"),
         error.response?.data?.error || t("auth.verifyFailed"),
       );
@@ -214,6 +215,7 @@ export default function RegisterScreen({ navigation }) {
       >
         <Text style={styles.link}>{t("auth.backToLogin")}</Text>
       </TouchableOpacity>
+      {dialog}
     </AuthShell>
   );
 }

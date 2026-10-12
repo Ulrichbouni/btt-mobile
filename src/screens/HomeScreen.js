@@ -22,7 +22,7 @@ import {
 import { useI18n } from "../i18n";
 import api from "../services/api";
 import { productStatus } from "../utils/produits";
-import { COLORS, FONTS, RADII, SPACING, formatXAF } from "../theme/theme";
+import { COLORS, FONTS, RADII, SHADOW, SPACING, formatXAF } from "../theme/theme";
 
 // Raccourcis par rôle : les clients ne voient jamais "Missions" (backend 403),
 // ni l'accès admin. Chaque tuile est colorée comme les maquettes.
@@ -333,11 +333,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 14,
     marginBottom: 12,
-    shadowColor: "#5C4632",
-    shadowOpacity: 0.07,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 3,
+    ...SHADOW.card,
   },
   gridLabel: {
     color: COLORS.ink,

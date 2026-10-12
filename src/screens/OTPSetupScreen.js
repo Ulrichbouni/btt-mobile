@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 import {
   AppHeader,
@@ -9,6 +9,7 @@ import {
   Screen,
   SectionHeader,
   StatusPill,
+  useAppDialog,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
@@ -19,6 +20,7 @@ import { COLORS, FONTS, SPACING } from "../theme/theme";
 // /otp/verify et /otp/disable.
 export default function OTPSetupScreen({ navigation }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [secret, setSecret] = useState("");
   const [code, setCode] = useState("");
   const [qr, setQr] = useState("");
@@ -32,7 +34,7 @@ export default function OTPSetupScreen({ navigation }) {
       setSecret(data.secret);
       setQr(data.qrCode);
     } catch (e) {
-      Alert.alert(
+      alert(
         t("common.error"),
         e.response?.data?.error || t("otp.enableError"),
       );
@@ -46,9 +48,9 @@ export default function OTPSetupScreen({ navigation }) {
     try {
       await api.post("/otp/verify", { token: code });
       setEnabled(true);
-      Alert.alert(t("common.success"), t("otp.enabled"));
+      alert(t("common.success"), t("otp.enabled"));
     } catch (e) {
-      Alert.alert(
+      alert(
         t("common.error"),
         e.response?.data?.error || t("otp.verifyError"),
       );
@@ -65,7 +67,7 @@ export default function OTPSetupScreen({ navigation }) {
       setQr("");
       setSecret("");
     } catch (e) {
-      Alert.alert(
+      alert(
         t("common.error"),
         e.response?.data?.error || t("otp.disableError"),
       );
@@ -142,6 +144,7 @@ export default function OTPSetupScreen({ navigation }) {
           />
         ) : null}
       </Card>
+      {dialog}
     </Screen>
   );
 }

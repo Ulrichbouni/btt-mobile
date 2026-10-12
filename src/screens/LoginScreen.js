@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
-import { AuthShell, Button, Field } from "../components";
+import {
+  AuthShell,
+  Button,
+  DevQuickLogin,
+  Field,
+  useAppDialog,
+} from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
 import { saveSession } from "../services/auth";
@@ -9,6 +15,7 @@ import { COLORS, FONTS } from "../theme/theme";
 
 export default function LoginScreen({ navigation, onLogin }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
@@ -28,11 +35,11 @@ export default function LoginScreen({ navigation, onLogin }) {
 
   const submit = async () => {
     if (!email || !password) {
-      Alert.alert(t("common.error"), t("auth.fillAllFields"));
+      alert(t("common.error"), t("auth.fillAllFields"));
       return;
     }
     if (otpRequired && !otp) {
-      Alert.alert(t("common.error"), t("auth.otpRequired"));
+      alert(t("common.error"), t("auth.otpRequired"));
       return;
     }
     setLoading(true);
@@ -48,9 +55,9 @@ export default function LoginScreen({ navigation, onLogin }) {
       const code = err.response?.data?.error;
       if (code === "OTP_REQUIRED") {
         setOtpRequired(true);
-        Alert.alert(t("auth.twoFactorTitle"), t("auth.twoFactorMessage"));
+        alert(t("auth.twoFactorTitle"), t("auth.twoFactorMessage"));
       } else {
-        Alert.alert(t("common.error"), code || t("auth.loginFailed"));
+        alert(t("common.error"), code || t("auth.loginFailed"));
       }
     } finally {
       setLoading(false);
@@ -113,7 +120,7 @@ export default function LoginScreen({ navigation, onLogin }) {
       <TouchableOpacity
         style={styles.forgot}
         onPress={() =>
-          Alert.alert(t("auth.forgotPassword"), t("auth.forgotPasswordMessage"))
+          alert(t("auth.forgotPassword"), t("auth.forgotPasswordMessage"))
         }
         hitSlop={8}
       >
@@ -126,6 +133,13 @@ export default function LoginScreen({ navigation, onLogin }) {
         loading={loading}
         disabled={loading}
       />
+
+      {/* Raccourci de développement (retiré des builds de production). */}
+      <DevQuickLogin
+        onLogin={onLogin}
+        onError={(message) => alert(t("common.error"), message)}
+      />
+      {dialog}
     </AuthShell>
   );
 }

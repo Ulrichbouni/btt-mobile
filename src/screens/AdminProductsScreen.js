@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View, Alert } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   AppHeader,
@@ -12,10 +14,12 @@ import {
   SectionHeader,
   SegmentedTabs,
   StatusPill,
+  useAppDialog,
+  ScreenErrorBoundary,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
-import { COLORS, FONTS, SPACING, RADII } from "../theme/theme";
+import { COLORS, FONTS, SHADOW, SPACING, RADII } from "../theme/theme";
 import { EPAISSEURS } from "../constants/produits";
 
 const emptyForm = {
@@ -33,6 +37,7 @@ const emptyForm = {
 
 export default function AdminProductsScreen() {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -46,7 +51,7 @@ export default function AdminProductsScreen() {
       const { data } = await api.get("/products");
       setProducts(data);
     } catch (error) {
-      Alert.alert(
+      alert(
         t("common.error"),
         error.response?.data?.error || t("admin.loadProductsFailed"),
       );
@@ -102,7 +107,7 @@ export default function AdminProductsScreen() {
       !form.categorie.trim() ||
       !form.prix_ttc
     ) {
-      Alert.alert(t("common.error"), t("admin.needFields"));
+      alert(t("common.error"), t("admin.needFields"));
       return;
     }
 
@@ -123,7 +128,7 @@ export default function AdminProductsScreen() {
     };
 
     if (Number.isNaN(payload.prix_ttc)) {
-      Alert.alert(t("common.error"), t("admin.badPrice"));
+      alert(t("common.error"), t("admin.badPrice"));
       return;
     }
 
@@ -131,10 +136,10 @@ export default function AdminProductsScreen() {
     try {
       if (editingId) {
         await api.put(`/products/${editingId}`, payload);
-        Alert.alert(t("common.success"), t("admin.productUpdated"));
+        alert(t("common.success"), t("admin.productUpdated"));
       } else {
         await api.post("/products", payload);
-        Alert.alert(t("common.success"), t("admin.productCreated"));
+        alert(t("common.success"), t("admin.productCreated"));
       }
 
       setForm(emptyForm);
@@ -146,7 +151,7 @@ export default function AdminProductsScreen() {
         details?.map((d) => `${d.champ}: ${d.message}`).join("\n") ||
         error.response?.data?.error ||
         t("admin.opImpossible");
-      Alert.alert(t("common.error"), msg);
+      alert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -169,7 +174,7 @@ export default function AdminProductsScreen() {
   };
 
   const deleteProduct = async (id) => {
-    Alert.alert(t("admin.confirmation"), t("admin.deleteProductMsg"), [
+    alert(t("admin.confirmation"), t("admin.deleteProductMsg"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("admin.delete"),
@@ -177,10 +182,10 @@ export default function AdminProductsScreen() {
         onPress: async () => {
           try {
             const { data } = await api.delete(`/products/${id}`);
-            Alert.alert(t("common.success"), data.message || t("admin.productDeleted"));
+            alert(t("common.success"), data.message || t("admin.productDeleted"));
             await loadProducts();
           } catch (error) {
-            Alert.alert(
+            alert(
               t("common.error"),
               error.response?.data?.error || t("admin.suppressionImpossible"),
             );
@@ -190,9 +195,29 @@ export default function AdminProductsScreen() {
     ]);
   };
 
+  const navigation = useNavigation();
+
+  const headerLeft = (
+    <TouchableOpacity
+      style={styles.backBtn}
+      onPress={() => navigation.goBack()}
+      accessibilityRole="button"
+      accessibilityLabel="Retour"
+      activeOpacity={0.8}
+    >
+      <Ionicons name="close-outline" size={20} color={COLORS.ink} />
+    </TouchableOpacity>
+  );
+
   return (
+    <ScreenErrorBoundary fallbackTitle={t("admin.ecranInaccessible")}>
     <Screen contentStyle={styles.content}>
-      <AppHeader title={t("admin.products")} showBell onBell={() => {}} />
+      <AppHeader
+        left={headerLeft}
+        title={t("admin.products")}
+        showBell
+        onBell={() => {}}
+      />
 
       <SectionHeader
         icon="grid-outline"
@@ -370,7 +395,9 @@ export default function AdminProductsScreen() {
           ))
         )
       )}
+      {dialog}
     </Screen>
+    </ScreenErrorBoundary>
   );
 }
 
@@ -407,5 +434,15 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     flex: 1,
     justifyContent: "flex-end",
+  },
+  backBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+    ...SHADOW.card,
   },
 });

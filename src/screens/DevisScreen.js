@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Image,
   StyleSheet,
   Text,
@@ -21,6 +20,7 @@ import {
   SectionHeader,
   SegmentedTabs,
   StatusPill,
+  useAppDialog,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
@@ -30,6 +30,7 @@ import { COLORS, FONTS, RADII, SPACING, formatXAF } from "../theme/theme";
 
 export default function DevisScreen({ navigation, route }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [tab, setTab] = useState("new");
   const [produits, setProduits] = useState([]);
   const [produitId, setProduitId] = useState(null);
@@ -94,7 +95,7 @@ export default function DevisScreen({ navigation, route }) {
   const addPhotos = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(t("common.error"), t("devis.photos"));
+      alert(t("common.error"), t("devis.photos"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -142,19 +143,19 @@ export default function DevisScreen({ navigation, route }) {
     const date = form.date_souhaitee.trim();
 
     if (!surface || surface <= 0) {
-      Alert.alert(t("common.error"), t("devis.invalidSurface"));
+      alert(t("common.error"), t("devis.invalidSurface"));
       return;
     }
     if (ville.length < 2) {
-      Alert.alert(t("common.error"), t("devis.invalidCity"));
+      alert(t("common.error"), t("devis.invalidCity"));
       return;
     }
     if (adresse.length < 5) {
-      Alert.alert(t("common.error"), t("devis.invalidAddress"));
+      alert(t("common.error"), t("devis.invalidAddress"));
       return;
     }
     if (date && !isValidDate(date)) {
-      Alert.alert(t("common.error"), t("devis.invalidDate"));
+      alert(t("common.error"), t("devis.invalidDate"));
       return;
     }
 
@@ -168,7 +169,7 @@ export default function DevisScreen({ navigation, route }) {
       if (produitId) payload.produit_id = Number(produitId);
 
       const { data } = await api.post("/devis", payload);
-      Alert.alert(
+      alert(
         t("devis.sentTitle"),
         t("devis.sentMessage", { id: data.id }),
       );
@@ -182,7 +183,7 @@ export default function DevisScreen({ navigation, route }) {
         details?.map((d) => `${d.champ}: ${d.message}`).join("\n") ||
         e.response?.data?.error ||
         t("devis.sendFailed");
-      Alert.alert(t("common.error"), msg);
+      alert(t("common.error"), msg);
     } finally {
       setLoading(false);
     }
@@ -207,7 +208,7 @@ export default function DevisScreen({ navigation, route }) {
     try {
       await telechargerDevisPDF(id);
     } catch (e) {
-      Alert.alert(t("common.error"), e.message || t("devis.pdfError"));
+      alert(t("common.error"), e.message || t("devis.pdfError"));
     } finally {
       setPdfLoading(null);
     }
@@ -387,6 +388,7 @@ export default function DevisScreen({ navigation, route }) {
           )}
         </>
       )}
+      {dialog}
     </Screen>
   );
 }

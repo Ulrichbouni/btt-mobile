@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View, Alert } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   AppHeader,
@@ -9,14 +10,17 @@ import {
   Screen,
   SectionHeader,
   StatusPill,
+  useAppDialog,
+  ScreenErrorBoundary,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
 import { ETAPES, progressionPourcent } from "../constants/etapes";
-import { COLORS, FONTS, SPACING, RADII } from "../theme/theme";
+import { COLORS, FONTS, SHADOW, SPACING, RADII } from "../theme/theme";
 
 export default function AdminChantiersScreen({ navigation, user }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [chantiers, setChantiers] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +30,7 @@ export default function AdminChantiersScreen({ navigation, user }) {
       const { data } = await api.get("/chantiers/admin/tous");
       setChantiers(data);
     } catch (e) {
-      Alert.alert(t("common.error"), e.response?.data?.error || t("admin.chargementImpossible"));
+      alert(t("common.error"), e.response?.data?.error || t("admin.chargementImpossible"));
     } finally {
       setLoading(false);
     }
@@ -46,21 +50,21 @@ export default function AdminChantiersScreen({ navigation, user }) {
   const avancer = (chantier) => {
     const idx = ETAPES.indexOf(chantier.etape);
     if (idx >= ETAPES.length - 1) {
-      Alert.alert(t("admin.info"), t("admin.lastEtape"));
+      alert(t("admin.info"), t("admin.lastEtape"));
       return;
     }
     const prochaine = ETAPES[idx + 1];
-    Alert.alert(t("admin.avancerTitle"), t("admin.avancerMsg", { etape: prochaine }), [
+    alert(t("admin.avancerTitle"), t("admin.avancerMsg", { etape: prochaine }), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("admin.avancer"),
         onPress: async () => {
           try {
             await api.put(`/chantiers/${chantier.id}/avancer`);
-            Alert.alert(t("common.success"), t("admin.etapeDone", { etape: prochaine }));
+            alert(t("common.success"), t("admin.etapeDone", { etape: prochaine }));
             await load();
           } catch (e) {
-            Alert.alert(
+            alert(
               t("common.error"),
               e.response?.data?.error || t("admin.avancerImpossible"),
             );
@@ -70,9 +74,27 @@ export default function AdminChantiersScreen({ navigation, user }) {
     ]);
   };
 
+  const headerLeft = (
+    <TouchableOpacity
+      style={styles.backBtn}
+      onPress={() => navigation && navigation.goBack()}
+      accessibilityRole="button"
+      accessibilityLabel="Retour"
+      activeOpacity={0.8}
+    >
+      <Ionicons name="close-outline" size={20} color={COLORS.ink} />
+    </TouchableOpacity>
+  );
+
   return (
+    <ScreenErrorBoundary fallbackTitle={t("admin.ecranInaccessible")}>
     <Screen contentStyle={styles.content}>
-      <AppHeader title={t("admin.chantiers")} showBell onBell={() => {}} />
+      <AppHeader
+        left={headerLeft}
+        title={t("admin.chantiers")}
+        showBell
+        onBell={() => {}}
+      />
 
       <SectionHeader
         icon="construct-outline"
@@ -97,6 +119,11 @@ export default function AdminChantiersScreen({ navigation, user }) {
         <View style={styles.grid}>
           {chantiers.map((c) => {
             const progress = progressionPourcent(c.etape);
+            // Les chantiers n'ont pas de champ « statut » : la pilule reflète
+            // l'étape d'avancement (verte uniquement au stade final).
+            const etapeIdx = ETAPES.indexOf(c.etape);
+            const stepName =
+              etapeIdx >= 0 ? t("chantiers.stepNames")[etapeIdx] : c.etape || "—";
             const nbPhotosAvant = Array.isArray(c.photos_avant)
               ? c.photos_avant.length
               : 0;
@@ -112,7 +139,11 @@ export default function AdminChantiersScreen({ navigation, user }) {
                     <Text style={styles.name}>
                       Chantier #{c.id} — Devis #{c.devis_id}
                     </Text>
-                    <StatusPill status={c.statut || "en_stock"} small />
+                    <StatusPill
+                      label={stepName}
+                      tone={etapeIdx === ETAPES.length - 1 ? "success" : "info"}
+                      small
+                    />
                   </View>
                   <Text style={styles.meta}>{c.client_nom || t("admin.unknown")}</Text>
                 </View>
@@ -165,7 +196,9 @@ export default function AdminChantiersScreen({ navigation, user }) {
           })}
         </View>
       )}
+      {dialog}
     </Screen>
+    </ScreenErrorBoundary>
   );
 }
 
@@ -258,5 +291,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 12,
     textAlign: "center",
+  },
+  backBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+    ...SHADOW.card,
   },
 });

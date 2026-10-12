@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 
@@ -12,6 +12,7 @@ import {
   SectionHeader,
   StatusPill,
   Timeline,
+  useAppDialog,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
@@ -20,6 +21,7 @@ import { COLORS, FONTS, RADII, SPACING } from "../theme/theme";
 
 export default function ChantierDetailScreen({ route, user, navigation }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const { chantierId } = route.params;
   const [chantier, setChantier] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
       const { data } = await api.get(`/chantiers/${chantierId}`);
       setChantier(data);
     } catch (e) {
-      Alert.alert(
+      alert(
         t("common.error"),
         e.response?.data?.error || t("chantierDetail.loadError"),
       );
@@ -48,7 +50,7 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
     // 1. Demander la permission
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(t("common.error"), t("chantierDetail.permission"));
+      alert(t("common.error"), t("chantierDetail.permission"));
       return;
     }
 
@@ -83,13 +85,13 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
         urls: uploadedUrls,
       });
 
-      Alert.alert(
+      alert(
         t("common.success"),
         t("chantierDetail.photosAdded", { n: uploadedUrls.length }),
       );
       await load();
     } catch (e) {
-      Alert.alert(
+      alert(
         t("common.error"),
         e.response?.data?.error || e.message || t("chantierDetail.uploadError"),
       );
@@ -101,10 +103,10 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
   const avancer = () => {
     const prochaine = prochaineEtape(chantier?.etape);
     if (!prochaine) {
-      Alert.alert(t("common.success"), t("chantierDetail.lastStep"));
+      alert(t("common.success"), t("chantierDetail.lastStep"));
       return;
     }
-    Alert.alert(
+    alert(
       t("chantierDetail.advanceTitle"),
       t("chantierDetail.advanceConfirm", { etape: prochaine }),
       [
@@ -116,7 +118,7 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
               await api.put(`/chantiers/${chantierId}/avancer`);
               await load();
             } catch (e) {
-              Alert.alert(
+              alert(
                 t("common.error"),
                 e.response?.data?.error || t("chantierDetail.advanceError"),
               );
@@ -252,6 +254,7 @@ export default function ChantierDetailScreen({ route, user, navigation }) {
           </Card>
         ),
       )}
+      {dialog}
     </Screen>
   );
 }

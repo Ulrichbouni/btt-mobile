@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, View, Alert } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import {
   AppHeader,
@@ -11,6 +11,8 @@ import {
   Screen,
   SectionHeader,
   StatusPill,
+  useAppDialog,
+  ScreenErrorBoundary,
 } from "../components";
 import { useI18n } from "../i18n";
 import api from "../services/api";
@@ -20,6 +22,7 @@ const ROLES = ["client", "technicien", "admin"];
 
 export default function AdminUsersScreen({ currentUser }) {
   const { t } = useI18n();
+  const { alert, dialog } = useAppDialog();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("tous");
@@ -37,7 +40,7 @@ export default function AdminUsersScreen({ currentUser }) {
       const { data } = await api.get("/admin/utilisateurs");
       setUsers(data);
     } catch (error) {
-      Alert.alert(
+      alert(
         t("common.error"),
         error.response?.data?.error || t("admin.loadUsersFailed"),
       );
@@ -58,10 +61,10 @@ export default function AdminUsersScreen({ currentUser }) {
   const updateRole = async (userId, role) => {
     try {
       await api.put(`/admin/utilisateurs/${userId}/role`, { role });
-      Alert.alert(t("common.success"), t("admin.roleUpdated", { role }));
+      alert(t("common.success"), t("admin.roleUpdated", { role }));
       loadUsers();
     } catch (error) {
-      Alert.alert(
+      alert(
         t("common.error"),
         error.response?.data?.error || "Impossible de modifier le rôle",
       );
@@ -70,13 +73,13 @@ export default function AdminUsersScreen({ currentUser }) {
 
   const deleteUser = (userId) => {
     if (currentUser?.id === userId) {
-      Alert.alert(
+      alert(
         t("admin.impossible"),
         t("admin.selfDelete"),
       );
       return;
     }
-    Alert.alert(t("admin.confirmation"), t("admin.deleteUserMsg"), [
+    alert(t("admin.confirmation"), t("admin.deleteUserMsg"), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("admin.delete"),
@@ -84,10 +87,10 @@ export default function AdminUsersScreen({ currentUser }) {
         onPress: async () => {
           try {
             await api.delete(`/admin/utilisateurs/${userId}`);
-            Alert.alert(t("common.success"), t("admin.userDeleted"));
+            alert(t("common.success"), t("admin.userDeleted"));
             loadUsers();
           } catch (error) {
-            Alert.alert(
+            alert(
               t("common.error"),
               error.response?.data?.error || t("admin.suppressionImpossible"),
             );
@@ -113,7 +116,7 @@ export default function AdminUsersScreen({ currentUser }) {
 
   const saveEdit = async () => {
     if (!editForm.nom.trim() || !editForm.email.trim()) {
-      Alert.alert(t("common.error"), t("admin.needNameEmail"));
+      alert(t("common.error"), t("admin.needNameEmail"));
       return;
     }
     setSaving(true);
@@ -123,11 +126,11 @@ export default function AdminUsersScreen({ currentUser }) {
         email: editForm.email.trim(),
         telephone: editForm.telephone.trim() || undefined,
       });
-      Alert.alert(t("common.success"), t("admin.userUpdated"));
+      alert(t("common.success"), t("admin.userUpdated"));
       cancelEdit();
       loadUsers();
     } catch (error) {
-      Alert.alert(
+      alert(
         t("common.error"),
         error.response?.data?.error || t("admin.majImpossible"),
       );
@@ -137,6 +140,7 @@ export default function AdminUsersScreen({ currentUser }) {
   };
 
   return (
+    <ScreenErrorBoundary fallbackTitle={t("admin.ecranInaccessible")}>
     <Screen contentStyle={styles.content}>
       <AppHeader title={t("admin.users")} showBell onBell={() => {}} />
 
@@ -276,7 +280,9 @@ export default function AdminUsersScreen({ currentUser }) {
           </Card>
         ))
       )}
+      {dialog}
     </Screen>
+    </ScreenErrorBoundary>
   );
 }
 

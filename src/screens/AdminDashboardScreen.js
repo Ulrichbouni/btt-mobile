@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { AppHeader, IconTile, Screen, SectionTitle } from "../components";
+import { AppHeader, IconTile, Screen, ScreenErrorBoundary, SectionTitle } from "../components";
 import { useI18n } from "../i18n";
 import { COLORS, FONTS, SPACING } from "../theme/theme";
 
@@ -19,6 +19,7 @@ const SHORTCUTS = [
 export default function AdminDashboardScreen({ navigation }) {
   const { t } = useI18n();
   return (
+    <ScreenErrorBoundary fallbackTitle={t("admin.ecranInaccessible")}>
     <Screen scroll contentStyle={styles.content}>
       <AppHeader title={t("admin.dashboard")} showBell onBell={() => {}} />
 
@@ -41,6 +42,7 @@ export default function AdminDashboardScreen({ navigation }) {
         ))}
       </View>
     </Screen>
+    </ScreenErrorBoundary>
   );
 }
 
