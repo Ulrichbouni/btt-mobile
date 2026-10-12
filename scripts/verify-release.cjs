@@ -81,10 +81,20 @@ for (let i = 0; i < count; i++) {
   });
   offset += 46 + nl + el + cl;
 }
-const config = JSON.parse(entries.get('assets/app.config')().toString());
+// Un APK expose ces entrées à la racine ; un AAB les préfixe par « base/ ».
+// On résout dynamiquement pour supporter les deux artefacts avec le même code.
+const findEntry = (suffix) => {
+  for (const key of entries.keys()) {
+    if (key === suffix || key === `base/${suffix}` || key.endsWith(`/${suffix}`)) return key;
+  }
+  return null;
+};
+const configKey = findEntry('assets/app.config');
+assert(configKey, 'assets/app.config introuvable dans l\'artefact (ni à la racine, ni sous base/)');
+const config = JSON.parse(entries.get(configKey)().toString());
 assert.strictEqual(config.extra.apiUrl, 'https://btt-backend-sgas.onrender.com/api');
-const bundlePath = 'assets/index.android.bundle';
-const hasBundle = entries.has(bundlePath);
+const bundlePath = findEntry('assets/index.android.bundle');
+const hasBundle = bundlePath !== null;
 let bundleStr = '';
 let credentialCheck = { ok: true, reason: '' };
 
@@ -142,16 +152,21 @@ if (hasBundle) {
 // du fichier. On essaie d'abord aapt, et si ça échoue on utilise le fallback.
 let badging, pkgMatch, verCode, verName, isAab;
 if (apk.endsWith('.aab')) {
+  isAab = true;
   console.log('⚠ AAB : badging non disponible (aapt attend un APK) — informations déduites du bundle');
-  const configName = 'assets/app.config';
-  const configRaw = entries.get(configName)();
+  const configRaw = entries.get(configKey)();
   const config = JSON.parse(configRaw.toString());
-  const pkg = config?.expo?.ios?.bundleIdentifier || config?.expo?.android?.package || 'com.bttlux.app';
-  const version = config?.expo?.version || '1.0.0';
+  // Dans app.config, version/package sont à la racine (pas sous .expo).
+  const pkg = config?.ios?.bundleIdentifier || config?.android?.package || 'com.bttlux.app';
+  const version = config?.version || '1.0.0';
+  const verCodeRaw = config?.android?.versionCode;
+  // aapt aurait sorti name='…' avec des apostrophes ; on reproduit ce format pour
+  // que la regex de parsing (attendu par la branche APK) reste identique.
+  const codeStr = String(verCodeRaw != null ? verCodeRaw : version);
   badging = {
-    stdout: 'package: name=' + JSON.stringify(pkg) +
-      ' versionCode=' + JSON.stringify(version) +
-      ' versionName=' + JSON.stringify(version) + '\r\n',
+    stdout: "package: name='" + pkg +
+      "' versionCode='" + codeStr +
+      "' versionName='" + version + "'\r\n",
   };
   pkgMatch = badging.stdout.match(/^package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'/m);
   assert(pkgMatch, 'badging déduit inattendu : ' + badging.stdout);
@@ -170,8 +185,10 @@ if (apk.endsWith('.aab')) {
   verName = pkgMatch[3];
 }
 console.log('version : ' + verName + ' (code ' + verCode + ')');
-if (verCode !== 4 || verName !== '1.2') {
-  console.warn('⚠ version attendue 1.2 (code 4), trouvée ' + verName + ' (code ' + verCode + ') — artefact non calibré pour ce projet');
+// versionName peut être « 1.2 » ou « 1.2.0 » selon la source (aapt vs app.config) :
+// on accepte les deux formes de la 1.2, code 4.
+if (verCode !== 4 || !['1.2', '1.2.0'].includes(verName)) {
+  console.warn('⚠ version attendue 1.2 / 1.2.0 (code 4), trouvée ' + verName + ' (code ' + verCode + ') — artefact non calibré pour ce projet');
 }
 // Vérification de la signature : on exige que l'artefact soit signé. S'il s'agit
 // d'un AAB, apksigner verify ne fonctionne pas directement sur l'AAB (il attend
